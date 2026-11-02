@@ -1,104 +1,41 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { HOSPITAL_QUESTIONNAIRE_SECTIONS } from "@/lib/data/hospital-seed";
 import { generateA2000Pdf } from "@/lib/services/pdf";
-import {
-  Download,
-  FileSpreadsheet,
-  Check,
-} from "lucide-react";
+import { Download, RefreshCw } from "lucide-react";
 
-export default function GeneralizedQuestionnairePage() {
+export default function HospitalQuestionnairePage() {
+  // Pure local client-side state: isolated to each visitor's own browser session
   const [answers, setAnswers] = useState<Record<string, any>>({});
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("saved");
-  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const caseId = "case-default";
-
-  const loadCaseData = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/cases?caseId=${caseId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setAnswers(data.answers || {});
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [caseId]);
-
-  useEffect(() => {
-    loadCaseData();
-  }, [loadCaseData]);
-
-  const saveAnswer = async (questionKey: string, value: any, dept: string) => {
-    setSaveStatus("saving");
+  const setAnswer = (questionKey: string, value: any, dept: string) => {
     setAnswers((prev) => ({
       ...prev,
       [questionKey]: {
         value,
         department: dept,
-        updatedAt: new Date().toISOString(),
       },
     }));
+  };
 
-    try {
-      const res = await fetch("/api/cases", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          caseId,
-          questionKey,
-          value,
-          department: dept,
-        }),
-      });
-      if (res.ok) {
-        setSaveStatus("saved");
-      } else {
-        setSaveStatus("error");
-      }
-    } catch (err) {
-      console.error("Autosave error:", err);
-      setSaveStatus("error");
+  const handleClear = () => {
+    if (confirm("Are you sure you want to clear all filled answers?")) {
+      setAnswers({});
     }
   };
 
   const hospitalName = (answers["q1_1_hospital_name"]?.value as string) || "Healthcare Facility";
 
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <p className="text-sm text-slate-500">Loading questionnaire...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-4xl mx-auto pb-16">
-      {/* Top Simple Action Bar */}
+      {/* Top Floating Action Bar */}
       <div className="sticky top-4 z-40 bg-white/95 backdrop-blur-xs border border-slate-300 rounded shadow-sm px-4 py-2.5 mb-6 flex flex-wrap items-center justify-between gap-3 text-sm">
         <div className="flex items-center space-x-3">
-          <span className="text-xs text-slate-600 font-medium">
-            AI Opportunity Discovery Questionnaire
-          </span>
-          <span className="text-xs text-slate-400">•</span>
-          <span className="text-xs text-slate-500 flex items-center gap-1.5">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                saveStatus === "saving"
-                  ? "bg-amber-400"
-                  : saveStatus === "error"
-                  ? "bg-red-500"
-                  : "bg-emerald-500"
-              }`}
-            />
-            {saveStatus === "saving" ? "Saving..." : saveStatus === "error" ? "Offline" : "Autosaved"}
+          <span className="text-xs text-slate-700 font-semibold">
+            Hospital AI Opportunity Discovery Questionnaire
           </span>
         </div>
 
@@ -110,15 +47,17 @@ export default function GeneralizedQuestionnairePage() {
             Switch to Food & Beverage Form →
           </Link>
 
-          <a
-            href="/api/export/excel?caseId=case-default"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-300 px-3 py-1.5 rounded transition"
+          <button
+            type="button"
+            onClick={handleClear}
+            className="inline-flex items-center gap-1 text-xs text-slate-600 hover:text-slate-900 border border-slate-300 bg-slate-50 hover:bg-slate-100 px-2.5 py-1.5 rounded transition"
           >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-            Download Excel (.xlsx)
-          </a>
+            <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+            Clear Form
+          </button>
 
           <button
+            type="button"
             onClick={() =>
               generateA2000Pdf({
                 caseCode: "A2000-DISCOVERY",
@@ -133,7 +72,7 @@ export default function GeneralizedQuestionnairePage() {
                 })),
               })
             }
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] px-3.5 py-1.5 rounded transition"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] px-3.5 py-1.5 rounded transition shadow-sm"
           >
             <Download className="w-3.5 h-3.5 text-[#C97835]" />
             Download PDF
@@ -166,7 +105,7 @@ export default function GeneralizedQuestionnairePage() {
 
         {/* Guidance Box */}
         <div className="p-3 bg-slate-50 border border-slate-200 rounded text-xs text-slate-600 leading-relaxed">
-          This questionnaire gathers structured operational data across 12 hospital departments to assess automation and AI opportunities. Different departments can fill their respective sections directly. All entries are autosaved to the central database in real time.
+          Please fill in the form below. Once completed, click <strong>Download PDF</strong> at the top or bottom of the page to save a copy to your device and email it to the A2000 team.
         </div>
 
         {/* 12 Generalized Sections */}
@@ -204,7 +143,7 @@ export default function GeneralizedQuestionnairePage() {
                           type="text"
                           value={currentVal || ""}
                           placeholder={q.placeholder}
-                          onChange={(e) => saveAnswer(q.key, e.target.value, sec.defaultDepartment)}
+                          onChange={(e) => setAnswer(q.key, e.target.value, sec.defaultDepartment)}
                           className="w-full text-sm p-2 border border-slate-300 rounded bg-white text-slate-900 focus:outline-none focus:border-[#17324D]"
                         />
                       )}
@@ -215,12 +154,12 @@ export default function GeneralizedQuestionnairePage() {
                           rows={3}
                           value={currentVal || ""}
                           placeholder={q.placeholder}
-                          onChange={(e) => saveAnswer(q.key, e.target.value, sec.defaultDepartment)}
+                          onChange={(e) => setAnswer(q.key, e.target.value, sec.defaultDepartment)}
                           className="w-full text-sm p-2 border border-slate-300 rounded bg-white text-slate-900 focus:outline-none focus:border-[#17324D]"
                         />
                       )}
 
-                      {/* Radio Selection (Click to toggle / deselect) */}
+                      {/* Radio Selection (Click to toggle/deselect) */}
                       {q.type === "radio" && (
                         <div className="space-y-1.5 pt-0.5">
                           {q.options?.map((opt: any) => {
@@ -233,9 +172,8 @@ export default function GeneralizedQuestionnairePage() {
                                 key={optVal}
                                 onClick={(e) => {
                                   e.preventDefault();
-                                  // If already selected, deselect it (set to null)
                                   const newVal = isChecked ? null : optVal;
-                                  saveAnswer(q.key, newVal, sec.defaultDepartment);
+                                  setAnswer(q.key, newVal, sec.defaultDepartment);
                                 }}
                                 className="flex items-center gap-2 text-xs cursor-pointer select-none"
                               >
@@ -276,7 +214,7 @@ export default function GeneralizedQuestionnairePage() {
                                     const updated = isChecked
                                       ? selectedList.filter((item) => item !== optVal)
                                       : [...selectedList, optVal];
-                                    saveAnswer(q.key, updated, sec.defaultDepartment);
+                                    setAnswer(q.key, updated, sec.defaultDepartment);
                                   }}
                                   className="accent-[#17324D] rounded"
                                 />
@@ -320,14 +258,13 @@ export default function GeneralizedQuestionnairePage() {
                                           <button
                                             type="button"
                                             onClick={() => {
-                                              // If already clicked, clicking again deselects it
                                               const updated = { ...gridVals };
                                               if (isSelected) {
                                                 delete updated[row];
                                               } else {
                                                 updated[row] = ratingNum;
                                               }
-                                              saveAnswer(q.key, updated, sec.defaultDepartment);
+                                              setAnswer(q.key, updated, sec.defaultDepartment);
                                             }}
                                             className={`w-6 h-6 rounded-full text-xs font-medium transition ${
                                               isSelected
@@ -355,43 +292,33 @@ export default function GeneralizedQuestionnairePage() {
           ))}
         </div>
 
-        {/* Bottom Save & Download Bar */}
+        {/* Bottom Download Bar */}
         <div className="border-t border-slate-300 pt-6 flex flex-wrap items-center justify-between gap-3">
-          <div className="text-xs text-slate-500 flex items-center gap-1.5">
-            <Check className="w-4 h-4 text-emerald-600" />
-            <span>Answers autosave in real time. Different departments can access and add their details without losing earlier data.</span>
-          </div>
+          <p className="text-xs text-slate-500">
+            Click Download PDF to save your completed responses as a PDF file.
+          </p>
 
-          <div className="flex items-center gap-2">
-            <a
-              href="/api/export/excel?caseId=case-default"
-              className="inline-flex items-center gap-1 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-300 px-3 py-2 rounded transition"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-              Download Excel (.xlsx)
-            </a>
-
-            <button
-              onClick={() =>
-                generateA2000Pdf({
-                  caseCode: "A2000-DISCOVERY",
-                  clientName: hospitalName,
-                  industry: "Healthcare Provider",
-                  answers,
-                  sections: HOSPITAL_QUESTIONNAIRE_SECTIONS.map((s) => ({
-                    sectionNumber: s.number,
-                    title: s.title,
-                    department: s.defaultDepartment,
-                    status: "completed",
-                  })),
-                })
-              }
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] px-4 py-2 rounded transition shadow-sm"
-            >
-              <Download className="w-3.5 h-3.5 text-[#C97835]" />
-              Download PDF
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() =>
+              generateA2000Pdf({
+                caseCode: "A2000-DISCOVERY",
+                clientName: hospitalName,
+                industry: "Healthcare Provider",
+                answers,
+                sections: HOSPITAL_QUESTIONNAIRE_SECTIONS.map((s) => ({
+                  sectionNumber: s.number,
+                  title: s.title,
+                  department: s.defaultDepartment,
+                  status: "completed",
+                })),
+              })
+            }
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] px-4 py-2 rounded transition shadow-sm"
+          >
+            <Download className="w-3.5 h-3.5 text-[#C97835]" />
+            Download PDF
+          </button>
         </div>
 
       </div>
