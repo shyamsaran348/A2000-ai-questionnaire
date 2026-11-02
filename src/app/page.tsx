@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { HOSPITAL_QUESTIONNAIRE_SECTIONS } from "@/lib/data/hospital-seed";
 import { generateA2000Pdf } from "@/lib/services/pdf";
 import {
@@ -102,6 +103,13 @@ export default function GeneralizedQuestionnairePage() {
         </div>
 
         <div className="flex items-center space-x-2">
+          <Link
+            href="/food-and-beverage"
+            className="text-xs text-slate-500 hover:text-slate-800 underline px-2 py-1"
+          >
+            Switch to Food & Beverage Form →
+          </Link>
+
           <a
             href="/api/export/excel?caseId=case-default"
             className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-300 px-3 py-1.5 rounded transition"

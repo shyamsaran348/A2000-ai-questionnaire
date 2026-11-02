@@ -19,3 +19,4 @@ export async function ensureTablesCreated() {
     console.error("Failed to initialize database tables:", err);
   }
 }
+

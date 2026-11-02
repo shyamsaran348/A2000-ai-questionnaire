@@ -2,10 +2,19 @@ import { NextResponse } from "next/server";
 import { generateCaseWorkbook } from "@/lib/services/excel";
 import { memoryStore } from "@/lib/services/store";
 import { HOSPITAL_QUESTIONNAIRE_SECTIONS } from "@/lib/data/hospital-seed";
+import { FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS } from "@/lib/data/food-beverage-seed";
 import { sql, ensureTablesCreated } from "@/lib/db/neon";
 
 export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const caseId = searchParams.get("caseId") || "case-default";
+    const type = searchParams.get("type");
+
+    const sections = type === "fb" ? FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS : HOSPITAL_QUESTIONNAIRE_SECTIONS;
+    const defaultIndustry = type === "fb" ? "Food & Beverage / FMCG" : "Healthcare Provider";
+    const defaultNameKey = type === "fb" ? "fb_q1_company_name" : "q1_1_hospital_name";
+
     let caseAnswers: Record<string, any> = {};
     const isNeonConfigured = Boolean(process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("postgres"));
 
@@ -29,19 +38,19 @@ export async function GET(request: Request) {
     }
 
     if (Object.keys(caseAnswers).length === 0) {
-      caseAnswers = memoryStore.answers["case-default"] || {};
+      caseAnswers = memoryStore.answers[caseId] || {};
     }
 
-    const clientName = (caseAnswers["q1_1_hospital_name"]?.value as string) || "Healthcare Facility";
+    const clientName = (caseAnswers[defaultNameKey]?.value as string) || (type === "fb" ? "Food & Beverage Company" : "Healthcare Facility");
 
     const buffer = await generateCaseWorkbook({
-      caseCode: "A2000-DISCOVERY",
+      caseCode: type === "fb" ? "A2000-FB-DISCOVERY" : "A2000-DISCOVERY",
       clientName: clientName,
-      industry: "Healthcare Provider",
+      industry: defaultIndustry,
       status: "In Progress",
       workflowMode: "Standard",
       createdAt: new Date().toISOString(),
-      sections: HOSPITAL_QUESTIONNAIRE_SECTIONS.map((s) => ({
+      sections: sections.map((s) => ({
         sectionNumber: s.number,
         title: s.title,
         department: s.defaultDepartment,
