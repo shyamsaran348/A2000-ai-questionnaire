@@ -4,10 +4,11 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS } from "@/lib/data/food-beverage-seed";
 import { generateA2000Pdf } from "@/lib/services/pdf";
-import { Download, RefreshCw, UtensilsCrossed } from "lucide-react";
+import { Download, RefreshCw, UtensilsCrossed, AlertCircle } from "lucide-react";
 
 export default function FoodBeverageQuestionnairePage() {
   const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const setAnswer = (questionKey: string, value: any, dept: string) => {
     setAnswers((prev) => ({
@@ -17,15 +18,98 @@ export default function FoodBeverageQuestionnairePage() {
         department: dept,
       },
     }));
+
+    // Clear error on change if fixed
+    if (errors[questionKey]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[questionKey];
+        return next;
+      });
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS.forEach((sec) => {
+      sec.questions.forEach((q) => {
+        const stored = answers[q.key];
+        const val = stored?.value;
+
+        // 1. Required check
+        if (q.required) {
+          if (!val || (typeof val === "string" && !val.trim())) {
+            newErrors[q.key] = `${q.label} is required.`;
+            return;
+          }
+        }
+
+        // 2. Email format validation
+        if (q.key.includes("email") && val && typeof val === "string" && val.trim()) {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(val.trim())) {
+            newErrors[q.key] = "Please enter a valid email address (e.g., name@company.com).";
+            return;
+          }
+        }
+
+        // 3. Phone format validation
+        if (q.key.includes("phone") && val && typeof val === "string" && val.trim()) {
+          const digitsOnly = val.replace(/\D/g, "");
+          if (digitsOnly.length < 10) {
+            newErrors[q.key] = "Please enter a valid phone number with at least 10 digits.";
+            return;
+          }
+        }
+
+        // 4. "Other" specification check
+        const isOther =
+          val === "Other" || (Array.isArray(val) && val.includes("Other"));
+        if (isOther && (!stored?.customOther || !stored.customOther.trim())) {
+          newErrors[`${q.key}_other`] = "Please specify details for 'Other'.";
+        }
+      });
+    });
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      // Scroll to first error
+      const firstErrorKey = Object.keys(newErrors)[0].replace("_other", "");
+      const el = document.getElementById(`field-${firstErrorKey}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleDownload = () => {
+    if (!validateForm()) {
+      alert("Please correct the highlighted fields before downloading the PDF.");
+      return;
+    }
+
+    const companyName = (answers["fb_q1_company_name"]?.value as string) || "Food & Beverage Enterprise";
+
+    generateA2000Pdf({
+      caseCode: "A2000-FB",
+      clientName: companyName,
+      industry: "Food & Beverage",
+      answers,
+      sections: FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS,
+    });
   };
 
   const handleClear = () => {
     if (confirm("Are you sure you want to clear all filled answers?")) {
       setAnswers({});
+      setErrors({});
     }
   };
-
-  const companyName = (answers["fb_q1_company_name"]?.value as string) || "Food & Beverage Enterprise";
 
   return (
     <div className="max-w-4xl mx-auto pb-16">
@@ -50,15 +134,7 @@ export default function FoodBeverageQuestionnairePage() {
 
           <button
             type="button"
-            onClick={() =>
-              generateA2000Pdf({
-                caseCode: "A2000-FB",
-                clientName: companyName,
-                industry: "Food & Beverage",
-                answers,
-                sections: FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS,
-              })
-            }
+            onClick={handleDownload}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] px-3.5 py-1.5 rounded transition shadow-sm"
           >
             <Download className="w-3.5 h-3.5 text-[#C97835]" />
@@ -119,6 +195,7 @@ export default function FoodBeverageQuestionnairePage() {
                   const storedObj = answers[q.key];
                   const currentVal = storedObj?.value;
                   const customOtherText = storedObj?.customOther || "";
+                  const errorMsg = errors[q.key] || errors[`${q.key}_other`];
 
                   const isOtherSelected =
                     q.type === "radio"
@@ -126,19 +203,27 @@ export default function FoodBeverageQuestionnairePage() {
                       : Array.isArray(currentVal) && currentVal.includes("Other");
 
                   return (
-                    <div key={q.key} className="space-y-1.5 text-sm">
+                    <div
+                      key={q.key}
+                      id={`field-${q.key}`}
+                      className={`space-y-1.5 text-sm p-2 rounded transition ${
+                        errorMsg ? "bg-red-50/50 border border-red-200" : ""
+                      }`}
+                    >
                       <label className="block font-medium text-slate-800">
-                        {sec.number}.{idx + 1} {q.label} {q.required && <span className="text-red-500">*</span>}
+                        {sec.number}.{idx + 1} {q.label} {q.required && <span className="text-red-500 font-bold">*</span>}
                       </label>
 
                       {/* Text Input */}
                       {q.type === "text" && (
                         <input
-                          type="text"
+                          type={q.key.includes("email") ? "email" : q.key.includes("phone") ? "tel" : "text"}
                           value={currentVal || ""}
                           placeholder={q.placeholder}
                           onChange={(e) => setAnswer(q.key, e.target.value, sec.defaultDepartment)}
-                          className="w-full text-sm p-2 border border-slate-300 rounded bg-white text-slate-900 focus:outline-none focus:border-[#17324D]"
+                          className={`w-full text-sm p-2 border rounded bg-white text-slate-900 focus:outline-none ${
+                            errorMsg ? "border-red-400 focus:border-red-500" : "border-slate-300 focus:border-[#17324D]"
+                          }`}
                         />
                       )}
 
@@ -149,7 +234,9 @@ export default function FoodBeverageQuestionnairePage() {
                           value={currentVal || ""}
                           placeholder={q.placeholder}
                           onChange={(e) => setAnswer(q.key, e.target.value, sec.defaultDepartment)}
-                          className="w-full text-sm p-2 border border-slate-300 rounded bg-white text-slate-900 focus:outline-none focus:border-[#17324D]"
+                          className={`w-full text-sm p-2 border rounded bg-white text-slate-900 focus:outline-none ${
+                            errorMsg ? "border-red-400 focus:border-red-500" : "border-slate-300 focus:border-[#17324D]"
+                          }`}
                         />
                       )}
 
@@ -190,7 +277,7 @@ export default function FoodBeverageQuestionnairePage() {
                             <div className="pt-1.5 pl-6">
                               <input
                                 type="text"
-                                placeholder="Please specify other details..."
+                                placeholder="Please specify other details... *"
                                 value={customOtherText}
                                 onChange={(e) => {
                                   const otherText = e.target.value;
@@ -202,8 +289,17 @@ export default function FoodBeverageQuestionnairePage() {
                                       department: sec.defaultDepartment,
                                     },
                                   }));
+                                  if (errors[`${q.key}_other`]) {
+                                    setErrors((prev) => {
+                                      const next = { ...prev };
+                                      delete next[`${q.key}_other`];
+                                      return next;
+                                    });
+                                  }
                                 }}
-                                className="w-full sm:w-80 text-xs p-1.5 border border-slate-300 rounded bg-slate-50 text-slate-900 focus:outline-none focus:border-[#17324D]"
+                                className={`w-full sm:w-80 text-xs p-1.5 border rounded bg-slate-50 text-slate-900 focus:outline-none ${
+                                  errors[`${q.key}_other`] ? "border-red-400" : "border-slate-300 focus:border-[#17324D]"
+                                }`}
                               />
                             </div>
                           )}
@@ -247,7 +343,7 @@ export default function FoodBeverageQuestionnairePage() {
                             <div className="pt-1.5 pl-6">
                               <input
                                 type="text"
-                                placeholder="Please specify other details..."
+                                placeholder="Please specify other details... *"
                                 value={customOtherText}
                                 onChange={(e) => {
                                   const otherText = e.target.value;
@@ -259,8 +355,17 @@ export default function FoodBeverageQuestionnairePage() {
                                       department: sec.defaultDepartment,
                                     },
                                   }));
+                                  if (errors[`${q.key}_other`]) {
+                                    setErrors((prev) => {
+                                      const next = { ...prev };
+                                      delete next[`${q.key}_other`];
+                                      return next;
+                                    });
+                                  }
                                 }}
-                                className="w-full sm:w-80 text-xs p-1.5 border border-slate-300 rounded bg-slate-50 text-slate-900 focus:outline-none focus:border-[#17324D]"
+                                className={`w-full sm:w-80 text-xs p-1.5 border rounded bg-slate-50 text-slate-900 focus:outline-none ${
+                                  errors[`${q.key}_other`] ? "border-red-400" : "border-slate-300 focus:border-[#17324D]"
+                                }`}
                               />
                             </div>
                           )}
@@ -324,6 +429,14 @@ export default function FoodBeverageQuestionnairePage() {
                           </table>
                         </div>
                       )}
+
+                      {/* Error Message */}
+                      {errorMsg && (
+                        <div className="text-xs text-red-600 font-medium flex items-center gap-1 mt-1">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          <span>{errorMsg}</span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -340,15 +453,7 @@ export default function FoodBeverageQuestionnairePage() {
 
           <button
             type="button"
-            onClick={() =>
-              generateA2000Pdf({
-                caseCode: "A2000-FB",
-                clientName: companyName,
-                industry: "Food & Beverage",
-                answers,
-                sections: FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS,
-              })
-            }
+            onClick={handleDownload}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] px-4 py-2 rounded transition shadow-sm"
           >
             <Download className="w-3.5 h-3.5 text-[#C97835]" />

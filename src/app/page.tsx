@@ -5,11 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { HOSPITAL_QUESTIONNAIRE_SECTIONS } from "@/lib/data/hospital-seed";
 import { generateA2000Pdf } from "@/lib/services/pdf";
-import { Download, RefreshCw } from "lucide-react";
+import { Download, RefreshCw, AlertCircle } from "lucide-react";
 
 export default function HospitalQuestionnairePage() {
-  // Pure local client-side state: isolated to each visitor's own browser session
   const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const setAnswer = (questionKey: string, value: any, dept: string) => {
     setAnswers((prev) => ({
@@ -19,15 +19,89 @@ export default function HospitalQuestionnairePage() {
         department: dept,
       },
     }));
+
+    if (errors[questionKey]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[questionKey];
+        return next;
+      });
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    HOSPITAL_QUESTIONNAIRE_SECTIONS.forEach((sec) => {
+      sec.questions.forEach((q) => {
+        const stored = answers[q.key];
+        const val = stored?.value;
+
+        // 1. Required check
+        if (q.required) {
+          if (!val || (typeof val === "string" && !val.trim())) {
+            newErrors[q.key] = `${q.label} is required.`;
+            return;
+          }
+        }
+
+        // 2. Email format validation
+        if (q.key.includes("email") && val && typeof val === "string" && val.trim()) {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(val.trim())) {
+            newErrors[q.key] = "Please enter a valid email address.";
+            return;
+          }
+        }
+
+        // 3. Phone format validation
+        if (q.key.includes("phone") && val && typeof val === "string" && val.trim()) {
+          const digitsOnly = val.replace(/\D/g, "");
+          if (digitsOnly.length < 10) {
+            newErrors[q.key] = "Please enter a valid phone number with at least 10 digits.";
+            return;
+          }
+        }
+      });
+    });
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      const firstErrorKey = Object.keys(newErrors)[0];
+      const el = document.getElementById(`field-${firstErrorKey}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleDownload = () => {
+    if (!validateForm()) {
+      alert("Please fill in the required fields highlighted in red before downloading the PDF.");
+      return;
+    }
+
+    const hospitalName = (answers["q1_1_hospital_name"]?.value as string) || "Healthcare Facility";
+
+    generateA2000Pdf({
+      caseCode: "A2000-HOSPITAL",
+      clientName: hospitalName,
+      industry: "Healthcare Provider",
+      answers,
+      sections: HOSPITAL_QUESTIONNAIRE_SECTIONS,
+    });
   };
 
   const handleClear = () => {
     if (confirm("Are you sure you want to clear all filled answers?")) {
       setAnswers({});
+      setErrors({});
     }
   };
-
-  const hospitalName = (answers["q1_1_hospital_name"]?.value as string) || "Healthcare Facility";
 
   return (
     <div className="max-w-4xl mx-auto pb-16">
@@ -58,15 +132,7 @@ export default function HospitalQuestionnairePage() {
 
           <button
             type="button"
-            onClick={() =>
-              generateA2000Pdf({
-                caseCode: "A2000-HOSPITAL",
-                clientName: hospitalName,
-                industry: "Healthcare Provider",
-                answers,
-                sections: HOSPITAL_QUESTIONNAIRE_SECTIONS,
-              })
-            }
+            onClick={handleDownload}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] px-3.5 py-1.5 rounded transition shadow-sm"
           >
             <Download className="w-3.5 h-3.5 text-[#C97835]" />
@@ -125,21 +191,30 @@ export default function HospitalQuestionnairePage() {
               <div className="space-y-5">
                 {sec.questions.map((q, idx) => {
                   const currentVal = answers[q.key]?.value;
+                  const errorMsg = errors[q.key];
 
                   return (
-                    <div key={q.key} className="space-y-1.5 text-sm">
+                    <div
+                      key={q.key}
+                      id={`field-${q.key}`}
+                      className={`space-y-1.5 text-sm p-2 rounded transition ${
+                        errorMsg ? "bg-red-50/50 border border-red-200" : ""
+                      }`}
+                    >
                       <label className="block font-medium text-slate-800">
-                        {idx + 1}. {q.label} {q.required && <span className="text-red-500">*</span>}
+                        {sec.number}.{idx + 1} {q.label} {q.required && <span className="text-red-500 font-bold">*</span>}
                       </label>
 
                       {/* Text Input */}
                       {q.type === "text" && (
                         <input
-                          type="text"
+                          type={q.key.includes("email") ? "email" : q.key.includes("phone") ? "tel" : "text"}
                           value={currentVal || ""}
                           placeholder={q.placeholder}
                           onChange={(e) => setAnswer(q.key, e.target.value, sec.defaultDepartment)}
-                          className="w-full text-sm p-2 border border-slate-300 rounded bg-white text-slate-900 focus:outline-none focus:border-[#17324D]"
+                          className={`w-full text-sm p-2 border rounded bg-white text-slate-900 focus:outline-none ${
+                            errorMsg ? "border-red-400 focus:border-red-500" : "border-slate-300 focus:border-[#17324D]"
+                          }`}
                         />
                       )}
 
@@ -150,7 +225,9 @@ export default function HospitalQuestionnairePage() {
                           value={currentVal || ""}
                           placeholder={q.placeholder}
                           onChange={(e) => setAnswer(q.key, e.target.value, sec.defaultDepartment)}
-                          className="w-full text-sm p-2 border border-slate-300 rounded bg-white text-slate-900 focus:outline-none focus:border-[#17324D]"
+                          className={`w-full text-sm p-2 border rounded bg-white text-slate-900 focus:outline-none ${
+                            errorMsg ? "border-red-400 focus:border-red-500" : "border-slate-300 focus:border-[#17324D]"
+                          }`}
                         />
                       )}
 
@@ -279,6 +356,14 @@ export default function HospitalQuestionnairePage() {
                           </table>
                         </div>
                       )}
+
+                      {/* Error Message */}
+                      {errorMsg && (
+                        <div className="text-xs text-red-600 font-medium flex items-center gap-1 mt-1">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          <span>{errorMsg}</span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -295,15 +380,7 @@ export default function HospitalQuestionnairePage() {
 
           <button
             type="button"
-            onClick={() =>
-              generateA2000Pdf({
-                caseCode: "A2000-HOSPITAL",
-                clientName: hospitalName,
-                industry: "Healthcare Provider",
-                answers,
-                sections: HOSPITAL_QUESTIONNAIRE_SECTIONS,
-              })
-            }
+            onClick={handleDownload}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] px-4 py-2 rounded transition shadow-sm"
           >
             <Download className="w-3.5 h-3.5 text-[#C97835]" />
