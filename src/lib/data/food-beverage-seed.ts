@@ -23,10 +23,17 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
         required: true,
       },
       {
-        key: "fb_q1_email_phone",
-        label: "Email / Phone",
+        key: "fb_q1_email",
+        label: "Email Address",
         type: "text",
-        placeholder: "e.g., info@company.com / +91 98765 43210",
+        placeholder: "e.g., rsharma@company.com",
+        required: true,
+      },
+      {
+        key: "fb_q1_phone",
+        label: "Phone / Mobile Number",
+        type: "text",
+        placeholder: "e.g., +91 98765 43210",
         required: true,
       },
       {
