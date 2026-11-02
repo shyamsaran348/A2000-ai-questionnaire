@@ -240,7 +240,7 @@ export default function FoodBeverageQuestionnairePage() {
                         />
                       )}
 
-                      {/* Radio Selection (Click to toggle/deselect) */}
+                      {/* Radio Selection (Native click with toggle/deselect) */}
                       {q.type === "radio" && (
                         <div className="space-y-1.5 pt-0.5">
                           {q.options?.map((opt: any) => {
@@ -249,26 +249,35 @@ export default function FoodBeverageQuestionnairePage() {
                             const isChecked = currentVal === optVal;
 
                             return (
-                              <label
+                              <div
                                 key={optVal}
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  const newVal = isChecked ? null : optVal;
-                                  setAnswer(q.key, newVal, sec.defaultDepartment);
-                                }}
-                                className="flex items-center gap-2 text-xs cursor-pointer select-none"
+                                className="flex items-center gap-2 text-xs"
                               >
                                 <input
                                   type="radio"
+                                  id={`${q.key}-${optVal}`}
                                   name={q.key}
                                   checked={isChecked}
-                                  readOnly
-                                  className="accent-[#17324D] cursor-pointer"
+                                  onClick={() => {
+                                    // Clean native single-click toggle
+                                    const newVal = isChecked ? null : optVal;
+                                    setAnswer(q.key, newVal, sec.defaultDepartment);
+                                  }}
+                                  onChange={() => {}}
+                                  className="accent-[#17324D] cursor-pointer w-4 h-4"
                                 />
-                                <span className={isChecked ? "font-semibold text-slate-900" : "text-slate-700"}>
+                                <label
+                                  htmlFor={`${q.key}-${optVal}`}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    const newVal = isChecked ? null : optVal;
+                                    setAnswer(q.key, newVal, sec.defaultDepartment);
+                                  }}
+                                  className={`cursor-pointer select-none ${isChecked ? "font-semibold text-slate-900" : "text-slate-700"}`}
+                                >
                                   {optLabel}
-                                </span>
-                              </label>
+                                </label>
+                              </div>
                             );
                           })}
 
@@ -316,12 +325,13 @@ export default function FoodBeverageQuestionnairePage() {
                             const isChecked = selectedList.includes(optVal);
 
                             return (
-                              <label
+                              <div
                                 key={optVal}
-                                className="flex items-center gap-2 text-xs cursor-pointer"
+                                className="flex items-center gap-2 text-xs"
                               >
                                 <input
                                   type="checkbox"
+                                  id={`${q.key}-${optVal}`}
                                   checked={isChecked}
                                   onChange={() => {
                                     const updated = isChecked
@@ -329,12 +339,15 @@ export default function FoodBeverageQuestionnairePage() {
                                       : [...selectedList, optVal];
                                     setAnswer(q.key, updated, sec.defaultDepartment);
                                   }}
-                                  className="accent-[#17324D] rounded"
+                                  className="accent-[#17324D] cursor-pointer w-4 h-4 rounded"
                                 />
-                                <span className={isChecked ? "font-semibold text-slate-900" : "text-slate-700"}>
+                                <label
+                                  htmlFor={`${q.key}-${optVal}`}
+                                  className={`cursor-pointer select-none ${isChecked ? "font-semibold text-slate-900" : "text-slate-700"}`}
+                                >
                                   {optLabel}
-                                </span>
-                              </label>
+                                </label>
+                              </div>
                             );
                           })}
 
