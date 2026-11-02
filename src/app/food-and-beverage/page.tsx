@@ -41,13 +41,6 @@ export default function FoodBeverageQuestionnairePage() {
         </div>
 
         <div className="flex items-center space-x-2">
-          <Link
-            href="/"
-            className="text-xs text-slate-500 hover:text-slate-800 underline px-2 py-1"
-          >
-            ← Switch to Hospital Form
-          </Link>
-
           <button
             type="button"
             onClick={handleClear}
@@ -95,9 +88,6 @@ export default function FoodBeverageQuestionnairePage() {
               className="object-contain"
               priority
             />
-          </div>
-          <div className="inline-block px-2.5 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-[#C97835] border border-amber-200 mb-1">
-            Food & Beverage / FMCG
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
             Company Discovery Questionnaire
