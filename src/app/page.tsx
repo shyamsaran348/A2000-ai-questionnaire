@@ -146,7 +146,7 @@ export default function HospitalQuestionnairePage() {
         
         {/* Document Header */}
         <div className="border-b border-slate-300 pb-6">
-          <div className="mb-3">
+          <div className="flex items-center justify-between mb-3">
             <Image
               src="/a2000-logo.png"
               alt="A2000 Logo"
@@ -155,6 +155,9 @@ export default function HospitalQuestionnairePage() {
               className="object-contain"
               priority
             />
+            <span className="text-[11px] font-bold tracking-widest uppercase text-slate-500 border border-slate-300 bg-slate-50 px-2.5 py-1 rounded">
+              CONFIDENTIAL
+            </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
             Hospital AI Opportunity Discovery Questionnaire

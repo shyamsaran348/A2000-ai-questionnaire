@@ -35,6 +35,11 @@ export function generateA2000Pdf(params: PdfExportParams): void {
   doc.setFontSize(14);
   doc.text("A2000 AI ENABLEMENT SERVICE", 14, 12);
 
+  // Top-Right Confidential Badge
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text("CONFIDENTIAL", 175, 12);
+
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.text(`${params.industry} Discovery Questionnaire — Confidential Assessment`, 14, 18);
