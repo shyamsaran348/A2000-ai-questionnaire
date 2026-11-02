@@ -212,7 +212,7 @@ export default function GeneralizedQuestionnairePage() {
                         />
                       )}
 
-                      {/* Radio Selection */}
+                      {/* Radio Selection (Click to toggle / deselect) */}
                       {q.type === "radio" && (
                         <div className="space-y-1.5 pt-0.5">
                           {q.options?.map((opt: any) => {
@@ -223,14 +223,20 @@ export default function GeneralizedQuestionnairePage() {
                             return (
                               <label
                                 key={optVal}
-                                className="flex items-center gap-2 text-xs cursor-pointer"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  // If already selected, deselect it (set to null)
+                                  const newVal = isChecked ? null : optVal;
+                                  saveAnswer(q.key, newVal, sec.defaultDepartment);
+                                }}
+                                className="flex items-center gap-2 text-xs cursor-pointer select-none"
                               >
                                 <input
                                   type="radio"
                                   name={q.key}
                                   checked={isChecked}
-                                  onChange={() => saveAnswer(q.key, optVal, sec.defaultDepartment)}
-                                  className="accent-[#17324D]"
+                                  readOnly
+                                  className="accent-[#17324D] cursor-pointer"
                                 />
                                 <span className={isChecked ? "font-semibold text-slate-900" : "text-slate-700"}>
                                   {optLabel}
@@ -306,7 +312,13 @@ export default function GeneralizedQuestionnairePage() {
                                           <button
                                             type="button"
                                             onClick={() => {
-                                              const updated = { ...gridVals, [row]: ratingNum };
+                                              // If already clicked, clicking again deselects it
+                                              const updated = { ...gridVals };
+                                              if (isSelected) {
+                                                delete updated[row];
+                                              } else {
+                                                updated[row] = ratingNum;
+                                              }
                                               saveAnswer(q.key, updated, sec.defaultDepartment);
                                             }}
                                             className={`w-6 h-6 rounded-full text-xs font-medium transition ${
