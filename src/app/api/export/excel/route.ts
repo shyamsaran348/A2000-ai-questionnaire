@@ -2,13 +2,36 @@ import { NextResponse } from "next/server";
 import { generateCaseWorkbook } from "@/lib/services/excel";
 import { memoryStore } from "@/lib/services/store";
 import { HOSPITAL_QUESTIONNAIRE_SECTIONS } from "@/lib/data/hospital-seed";
+import { sql, ensureTablesCreated } from "@/lib/db/neon";
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const caseId = searchParams.get("caseId") || "case-default";
+    let caseAnswers: Record<string, any> = {};
+    const isNeonConfigured = Boolean(process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("postgres"));
 
-    const caseAnswers = memoryStore.answers[caseId] || {};
+    if (isNeonConfigured) {
+      try {
+        await ensureTablesCreated();
+        const rows = await sql`
+          SELECT question_key, value, department, updated_at 
+          FROM hospital_questionnaire_answers
+        `;
+        rows.forEach((row: any) => {
+          caseAnswers[row.question_key] = {
+            value: row.value,
+            department: row.department,
+            updatedAt: row.updated_at,
+          };
+        });
+      } catch (err) {
+        console.error("Neon read error during excel export:", err);
+      }
+    }
+
+    if (Object.keys(caseAnswers).length === 0) {
+      caseAnswers = memoryStore.answers["case-default"] || {};
+    }
+
     const clientName = (caseAnswers["q1_1_hospital_name"]?.value as string) || "Healthcare Facility";
 
     const buffer = await generateCaseWorkbook({
