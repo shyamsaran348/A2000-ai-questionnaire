@@ -2,13 +2,11 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS } from "@/lib/data/food-beverage-seed";
 import { generateA2000Pdf } from "@/lib/services/pdf";
 import { Download, RefreshCw, UtensilsCrossed } from "lucide-react";
 
 export default function FoodBeverageQuestionnairePage() {
-  // Pure local client-side state: isolated to each visitor's own browser session
   const [answers, setAnswers] = useState<Record<string, any>>({});
 
   const setAnswer = (questionKey: string, value: any, dept: string) => {
@@ -102,7 +100,7 @@ export default function FoodBeverageQuestionnairePage() {
           Please fill in the form below. Once completed, click <strong>Download PDF</strong> at the top or bottom of the page to save a copy to your device and email it to the A2000 team.
         </div>
 
-        {/* 12 Sections of the F&B PDF */}
+        {/* 12 Sections */}
         <div className="space-y-10">
           {FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS.map((sec) => (
             <section
@@ -110,7 +108,7 @@ export default function FoodBeverageQuestionnairePage() {
               id={`section-${sec.number}`}
               className="border-t border-slate-200 pt-8 first:border-0 first:pt-0"
             >
-              {/* Section Heading */}
+              {/* Clean Section Heading */}
               <div className="mb-4">
                 <h2 className="text-lg font-bold text-slate-900">
                   {sec.title}
@@ -123,12 +121,19 @@ export default function FoodBeverageQuestionnairePage() {
               {/* Questions */}
               <div className="space-y-5">
                 {sec.questions.map((q, idx) => {
-                  const currentVal = answers[q.key]?.value;
+                  const storedObj = answers[q.key];
+                  const currentVal = storedObj?.value;
+                  const customOtherText = storedObj?.customOther || "";
+
+                  const isOtherSelected =
+                    q.type === "radio"
+                      ? currentVal === "Other"
+                      : Array.isArray(currentVal) && currentVal.includes("Other");
 
                   return (
                     <div key={q.key} className="space-y-1.5 text-sm">
                       <label className="block font-medium text-slate-800">
-                        {idx + 1}. {q.label} {q.required && <span className="text-red-500">*</span>}
+                        {sec.number}.{idx + 1} {q.label} {q.required && <span className="text-red-500">*</span>}
                       </label>
 
                       {/* Text Input */}
@@ -184,6 +189,29 @@ export default function FoodBeverageQuestionnairePage() {
                               </label>
                             );
                           })}
+
+                          {/* Typed Input for "Other" */}
+                          {isOtherSelected && (
+                            <div className="pt-1.5 pl-6">
+                              <input
+                                type="text"
+                                placeholder="Please specify other details..."
+                                value={customOtherText}
+                                onChange={(e) => {
+                                  const otherText = e.target.value;
+                                  setAnswers((prev) => ({
+                                    ...prev,
+                                    [q.key]: {
+                                      value: "Other",
+                                      customOther: otherText,
+                                      department: sec.defaultDepartment,
+                                    },
+                                  }));
+                                }}
+                                className="w-full sm:w-80 text-xs p-1.5 border border-slate-300 rounded bg-slate-50 text-slate-900 focus:outline-none focus:border-[#17324D]"
+                              />
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -218,6 +246,29 @@ export default function FoodBeverageQuestionnairePage() {
                               </label>
                             );
                           })}
+
+                          {/* Typed Input for "Other" */}
+                          {isOtherSelected && (
+                            <div className="pt-1.5 pl-6">
+                              <input
+                                type="text"
+                                placeholder="Please specify other details..."
+                                value={customOtherText}
+                                onChange={(e) => {
+                                  const otherText = e.target.value;
+                                  setAnswers((prev) => ({
+                                    ...prev,
+                                    [q.key]: {
+                                      ...prev[q.key],
+                                      customOther: otherText,
+                                      department: sec.defaultDepartment,
+                                    },
+                                  }));
+                                }}
+                                className="w-full sm:w-80 text-xs p-1.5 border border-slate-300 rounded bg-slate-50 text-slate-900 focus:outline-none focus:border-[#17324D]"
+                              />
+                            </div>
+                          )}
                         </div>
                       )}
 

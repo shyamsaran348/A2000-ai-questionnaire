@@ -37,7 +37,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         key: "fb_q1_business_type",
-        label: "Type of Business (Select all that apply)",
+        label: "Type of Business",
         type: "checkbox",
         options: [
           "Food manufacturing / processing",
@@ -52,7 +52,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         key: "fb_q1_employees_count",
-        label: "1.1 Number of Employees",
+        label: "Number of Employees",
         type: "radio",
         options: [
           "Under 50",
@@ -64,19 +64,17 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         key: "fb_q1_annual_turnover",
-        label: "1.2 Annual Turnover (approx.)",
+        label: "Annual Turnover (approx.)",
         type: "radio",
         options: [
           "Under Rs. 10 Cr",
           "Rs. 10–50 Cr",
           "Rs. 50–250 Cr",
-          "Rs. 250–1000 Cr",
-          "Rs. 1000 Cr+",
         ],
       },
       {
         key: "fb_q1_main_products",
-        label: "1.3 Main Products / Services",
+        label: "Main Products / Services",
         type: "checkbox",
         options: [
           "Spices / masalas / seasonings",
@@ -91,7 +89,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         key: "fb_q1_sales_channels",
-        label: "1.4 Sales Channels",
+        label: "Sales Channels",
         type: "checkbox",
         options: [
           "Distributors / wholesalers",
@@ -101,12 +99,13 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
           "Own website / D2C",
           "Food delivery platforms",
           "HoReCa / institutional",
-          "Export / Other",
+          "Export",
+          "Other",
         ],
       },
       {
         key: "fb_q1_scale_facilities",
-        label: "1.5 Business Scale (Production units, Outlets, Warehouses)",
+        label: "Business Scale (Production units, Outlets, Warehouses)",
         type: "textarea",
         placeholder: "e.g., 2 plants, 4 distribution centers, 15 retail outlets...",
       },
@@ -121,7 +120,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
     questions: [
       {
         key: "fb_q2_systems_in_use",
-        label: "2.1 Systems Currently in Use",
+        label: "Systems Currently in Use",
         type: "checkbox",
         options: [
           "Tally / accounting software",
@@ -131,12 +130,15 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
           "CRM system",
           "Inventory / WMS",
           "Production / manufacturing system",
-          "HRMS / Excel / paper / Other",
+          "HRMS",
+          "Excel",
+          "Paper",
+          "Other",
         ],
       },
       {
         key: "fb_q2_data_storage",
-        label: "2.2 Where is Business Data Stored?",
+        label: "Where is Business Data Stored?",
         type: "checkbox",
         options: [
           "On-premise servers",
@@ -146,24 +148,24 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
           "Excel / Google Sheets",
           "Paper records",
           "Combination",
-          "Not sure",
+          "Other",
         ],
       },
       {
         key: "fb_q2_tech_connectivity",
-        label: "2.3 How are Departments Connected Through Technology?",
+        label: "How are Departments Connected Through Technology?",
         type: "radio",
         options: [
           "Common integrated system",
           "Partially integrated systems",
           "Separate systems",
           "Information transferred manually",
-          "Not sure",
+          "Other",
         ],
       },
       {
         key: "fb_q2_it_team_size",
-        label: "2.4 In-House IT Team",
+        label: "In-House IT Team",
         type: "radio",
         options: [
           "None / outsourced",
@@ -174,7 +176,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         key: "fb_q2_ai_tools_current",
-        label: "2.5 Are you currently using AI tools or automation solutions? (If yes, mention tools and purpose)",
+        label: "Are you currently using AI tools or automation solutions? (If yes, mention tools and purpose)",
         type: "textarea",
         placeholder: "e.g., ChatGPT for marketing content, automated Excel macros, none yet...",
       },
@@ -189,7 +191,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
     questions: [
       {
         key: "fb_q3_raw_materials",
-        label: "3.1 Major Raw Materials and Supplies",
+        label: "Major Raw Materials and Supplies",
         type: "checkbox",
         options: [
           "Agricultural products / produce",
@@ -204,7 +206,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         key: "fb_q3_sourcing_methods",
-        label: "3.2 How are Raw Materials Sourced?",
+        label: "How are Raw Materials Sourced?",
         type: "checkbox",
         options: [
           "Direct from farmers / producers",
@@ -218,7 +220,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         key: "fb_q3_challenges",
-        label: "3.3 Major Procurement Challenges",
+        label: "Major Procurement Challenges",
         type: "checkbox",
         options: [
           "Price fluctuations",
@@ -233,7 +235,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         key: "fb_q3_workflow_description",
-        label: "3.4 How are procurement requirements, supplier selection, POs and records currently managed?",
+        label: "How are procurement requirements, supplier selection, POs and records currently managed?",
         type: "textarea",
         placeholder: "Describe how you compare vendor prices, issue purchase orders, and track supplier performance...",
       },
@@ -248,7 +250,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
     questions: [
       {
         key: "fb_q4_operations_list",
-        label: "4.1 Which Operations are Part of Your Business?",
+        label: "Which Operations are Part of Your Business?",
         type: "checkbox",
         options: [
           "Cleaning / sorting / preparation",
@@ -258,12 +260,13 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
           "Pasteurisation / sterilisation / fermentation",
           "Freezing / refrigeration",
           "Filling / packaging / labelling",
-          "Food assembly / storage / dispatch / Other",
+          "Food assembly / storage / dispatch",
+          "Other",
         ],
       },
       {
         key: "fb_q4_automation_level",
-        label: "4.2 Level of Operational Automation",
+        label: "Level of Operational Automation",
         type: "radio",
         options: [
           "Mostly manual",
@@ -275,7 +278,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         key: "fb_q4_production_challenges",
-        label: "4.3 Major Production / Preparation Challenges",
+        label: "Major Production / Preparation Challenges",
         type: "checkbox",
         options: [
           "Planning and scheduling",
@@ -285,12 +288,13 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
           "Raw material / food wastage",
           "Machine breakdown / maintenance",
           "Labour / shift scheduling",
-          "Energy / packaging / order delays / Other",
+          "Energy / packaging / order delays",
+          "Other",
         ],
       },
       {
         key: "fb_q4_planning_monitoring",
-        label: "4.4 How are production quantities, recipes, schedules and performance monitored?",
+        label: "How are production quantities, recipes, schedules and performance monitored?",
         type: "textarea",
         placeholder: "e.g., Daily morning shift meeting, Excel logs, batch cards...",
       },
@@ -311,7 +315,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
     questions: [
       {
         key: "fb_q5_certifications",
-        label: "5.1 Certifications Held",
+        label: "Certifications Held",
         type: "checkbox",
         options: [
           "FSSAI",
@@ -326,7 +330,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         key: "fb_q5_monitoring_methods",
-        label: "5.2 How is Quality and Food Safety Monitored?",
+        label: "How is Quality and Food Safety Monitored?",
         type: "checkbox",
         options: [
           "In-house laboratory testing",
@@ -336,12 +340,13 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
           "Machine / camera inspection",
           "Temperature monitoring",
           "Hygiene inspections",
-          "Customer feedback / Other",
+          "Customer feedback",
+          "Other",
         ],
       },
       {
         key: "fb_q5_quality_challenges",
-        label: "5.3 Major Quality-Related Challenges",
+        label: "Major Quality-Related Challenges",
         type: "checkbox",
         options: [
           "Raw material quality variations",
@@ -351,12 +356,13 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
           "Expiry / shelf-life monitoring",
           "Labelling / packaging errors",
           "Quality documentation / audits",
-          "Complaints / rejections / Other",
+          "Complaints / rejections",
+          "Other",
         ],
       },
       {
         key: "fb_q5_tracking_methods",
-        label: "5.4 How are quality records, inspection reports, batch details, manufacturing dates and expiry tracked?",
+        label: "How are quality records, inspection reports, batch details, manufacturing dates and expiry tracked?",
         type: "textarea",
         placeholder: "Describe documentation process, batch logbooks, ERP tags, or software used...",
       },
@@ -371,7 +377,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
     questions: [
       {
         key: "fb_q6_inventory_management",
-        label: "6.1 How is Inventory Currently Managed?",
+        label: "How is Inventory Currently Managed?",
         type: "checkbox",
         options: [
           "Manual stock registers",
@@ -384,7 +390,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         key: "fb_q6_forecasting_methods",
-        label: "6.2 How is Demand Forecasted and Replenishment Planned?",
+        label: "How is Demand Forecasted and Replenishment Planned?",
         type: "checkbox",
         options: [
           "Experience / management estimates",
@@ -393,12 +399,12 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
           "Seasonal demand patterns",
           "ERP / inventory planning tools",
           "Statistical forecasting",
-          "Other / Not sure",
+          "Other",
         ],
       },
       {
         key: "fb_q6_supply_chain_challenges",
-        label: "6.3 Major Inventory and Supply Chain Challenges",
+        label: "Major Inventory and Supply Chain Challenges",
         type: "checkbox",
         options: [
           "Stock-outs",
@@ -408,12 +414,13 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
           "Demand fluctuations",
           "Packaging / warehouse issues",
           "Stock mismatch",
-          "Delivery / logistics costs / Other",
+          "Delivery / logistics costs",
+          "Other",
         ],
       },
       {
         key: "fb_q6_monitoring_infrastructure",
-        label: "6.4 How are stock levels, perishable products and deliveries monitored across facilities?",
+        label: "How are stock levels, perishable products and deliveries monitored across facilities?",
         type: "textarea",
         placeholder: "e.g., Daily physical audit, barcode scanning, manual tally by warehouse managers...",
       },
@@ -428,7 +435,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
     questions: [
       {
         key: "fb_q7_channels_used",
-        label: "7.1 Sales and Marketing Channels Used",
+        label: "Sales and Marketing Channels Used",
         type: "checkbox",
         options: [
           "Distributors / wholesalers",
@@ -438,12 +445,13 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
           "Swiggy / Zomato / delivery apps",
           "Social media / WhatsApp",
           "Influencer / digital advertising",
-          "Traditional marketing / Other",
+          "Traditional marketing",
+          "Other",
         ],
       },
       {
         key: "fb_q7_sales_challenges",
-        label: "7.2 Major Sales and Marketing Challenges",
+        label: "Major Sales and Marketing Challenges",
         type: "checkbox",
         options: [
           "Sales performance monitoring",
@@ -453,24 +461,25 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
           "Promotions / discount management",
           "Content / social media management",
           "Online listings / reviews",
-          "Customer preferences / forecasting / Other",
+          "Customer preferences / forecasting",
+          "Other",
         ],
       },
       {
         key: "fb_q7_order_flow",
-        label: "7.3 How are Sales Orders Received, Recorded and Processed?",
+        label: "How are Sales Orders Received, Recorded and Processed?",
         type: "textarea",
         placeholder: "e.g., Field sales app, WhatsApp orders from distributors, direct EDI/ERP...",
       },
       {
         key: "fb_q7_performance_tracking",
-        label: "7.4 How do you monitor sales performance, demand and marketing effectiveness?",
+        label: "How do you monitor sales performance, demand and marketing effectiveness?",
         type: "textarea",
         placeholder: "Describe how regional sales numbers and campaign ROIs are evaluated...",
       },
       {
         key: "fb_q7_reports_reviewed",
-        label: "7.5 What Sales and Marketing Reports do you review, and how frequently?",
+        label: "What Sales and Marketing Reports do you review, and how frequently?",
         type: "textarea",
         placeholder: "e.g., Weekly secondary sales report, monthly distributor dispatch summary...",
       },
@@ -485,7 +494,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
     questions: [
       {
         key: "fb_q8_customer_touchpoints",
-        label: "8.1 How do Customers Reach Your Company?",
+        label: "How do Customers Reach Your Company?",
         type: "checkbox",
         options: [
           "Phone / call centre",
@@ -506,7 +515,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         key: "fb_q8_feedback_handling",
-        label: "8.2 How are enquiries, complaints, feedback and reviews recorded and addressed?",
+        label: "How are enquiries, complaints, feedback and reviews recorded and addressed?",
         type: "textarea",
         placeholder: "Describe software, ticketing systems, or manual WhatsApp escalation used...",
       },
@@ -521,7 +530,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
     questions: [
       {
         key: "fb_q9_finance_challenges",
-        label: "9.1 Major Finance-Related Activities / Challenges",
+        label: "Major Finance-Related Activities / Challenges",
         type: "checkbox",
         options: [
           "Invoice / purchase order processing",
@@ -531,12 +540,13 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
           "Sales reconciliation",
           "Costing / profit margin analysis",
           "Financial reporting / budgeting",
-          "Cash flow / Other",
+          "Cash flow",
+          "Other",
         ],
       },
       {
         key: "fb_q9_hr_challenges",
-        label: "9.2 Major HR-Related Activities / Challenges",
+        label: "Major HR-Related Activities / Challenges",
         type: "checkbox",
         options: [
           "Recruitment / resume screening",
@@ -546,12 +556,13 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
           "Performance tracking",
           "Employee training",
           "Staff allocation",
-          "Employee records / Other",
+          "Employee records",
+          "Other",
         ],
       },
       {
         key: "fb_q9_admin_challenges",
-        label: "9.3 Major Administrative Activities / Challenges",
+        label: "Major Administrative Activities / Challenges",
         type: "checkbox",
         options: [
           "Document management",
@@ -566,7 +577,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         key: "fb_q9_manual_workload",
-        label: "9.4 Which activities across finance, HR and administration involve the most manual work or consume the most employee time?",
+        label: "Which activities across finance, HR and administration involve the most manual work or consume the most employee time?",
         type: "textarea",
         placeholder: "e.g., Matching vendor invoices with delivery receipts, calculating overtime/shift pay...",
       },
@@ -600,13 +611,13 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         key: "fb_q10_top_three_challenges",
-        label: "10.1 What are the Top Three Business Challenges you would like to address?",
+        label: "What are the Top Three Business Challenges you would like to address?",
         type: "textarea",
         placeholder: "1. Reducing raw material spoilage\n2. Accurate demand forecasting across distributors\n3. Consistent batch taste/formulation...",
       },
       {
         key: "fb_q10_goals_1_3_years",
-        label: "10.2 What are your Company's Major Business Goals for the next 1–3 years?",
+        label: "What are your Company's Major Business Goals for the next 1–3 years?",
         type: "textarea",
         placeholder: "e.g., Expand to 3 new states, double D2C sales, launch ready-to-cook line...",
       },
@@ -621,18 +632,18 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
     questions: [
       {
         key: "fb_q11_historical_data",
-        label: "11.1 How Much Historical Business Data is Available Digitally?",
+        label: "How Much Historical Business Data is Available Digitally?",
         type: "radio",
         options: [
           "Less than 1 year",
           "1–3 years",
           "3+ years",
-          "Not sure",
+          "Other",
         ],
       },
       {
         key: "fb_q11_data_types_maintained",
-        label: "11.2 What Types of Business Data are Maintained?",
+        label: "What Types of Business Data are Maintained?",
         type: "checkbox",
         options: [
           "Sales / customer records",
@@ -646,7 +657,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         key: "fb_q11_preferred_approach",
-        label: "11.3 Preferred Approach",
+        label: "Preferred Approach",
         type: "checkbox",
         options: [
           "Ready-made AI tools",
@@ -655,11 +666,12 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
           "Workflow automation",
           "Staff AI training",
           "Open to recommendations",
+          "Other",
         ],
       },
       {
         key: "fb_q11_indicative_budget",
-        label: "11.4 Indicative Budget (first year)",
+        label: "Indicative Budget (first year)",
         type: "radio",
         options: [
           "Under Rs. 5 lakh",
@@ -671,7 +683,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         key: "fb_q11_timeline",
-        label: "11.5 Expected Timeline to Start",
+        label: "Expected Timeline to Start",
         type: "radio",
         options: [
           "Immediately",
@@ -683,7 +695,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         key: "fb_q11_concerns",
-        label: "11.6 Concerns About AI Adoption",
+        label: "Concerns About AI Adoption",
         type: "checkbox",
         options: [
           "Cost / unclear ROI",
@@ -698,7 +710,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         key: "fb_q11_decision_makers",
-        label: "11.7 Who would be involved in evaluating or approving AI initiatives, and how would you measure success?",
+        label: "Who would be involved in evaluating or approving AI initiatives, and how would you measure success?",
         type: "textarea",
         placeholder: "e.g., CEO, Head of Supply Chain, CFO; measured by reduction in wastage and faster order dispatch...",
       },
@@ -713,13 +725,13 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
     questions: [
       {
         key: "fb_q12_other_info",
-        label: "12.1 Is there any other important information about your business operations or challenges that we should know?",
+        label: "Is there any other important information about your business operations or challenges that we should know?",
         type: "textarea",
         placeholder: "Any ongoing initiatives, seasonal peaks (Diwali, summer), or specific pain points...",
       },
       {
         key: "fb_q12_discovery_meeting_open",
-        label: "12.2 Would you be open to a follow-up discovery meeting?",
+        label: "Would you be open to a follow-up discovery meeting?",
         type: "radio",
         options: [
           "Yes",
@@ -729,7 +741,7 @@ export const FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         key: "fb_q12_walkthrough_open",
-        label: "12.3 Would you be open to a relevant process / operational walkthrough?",
+        label: "Would you be open to a relevant process / operational walkthrough?",
         type: "radio",
         options: [
           "Yes",
