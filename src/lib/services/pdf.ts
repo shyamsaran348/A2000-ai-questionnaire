@@ -1,13 +1,13 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { HOSPITAL_QUESTIONNAIRE_SECTIONS } from "@/lib/data/hospital-seed";
+import { SectionDefinition } from "@/lib/data/hospital-seed";
 
 interface PdfExportParams {
   caseCode: string;
   clientName: string;
   industry: string;
-  answers: Record<string, { value: any; answeredByName?: string; department?: string }>;
-  sections: Array<{ sectionNumber: number; title: string; department: string; status: string }>;
+  answers: Record<string, any>;
+  sections: SectionDefinition[];
 }
 
 export function generateA2000Pdf(params: PdfExportParams): void {
@@ -37,30 +37,30 @@ export function generateA2000Pdf(params: PdfExportParams): void {
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.text("Healthcare AI Opportunity Discovery Questionnaire — Confidential Assessment", 14, 18);
+  doc.text(`${params.industry} Discovery Questionnaire — Confidential Assessment`, 14, 18);
   doc.text(`Case ID: ${params.caseCode} | Date: ${new Date().toLocaleDateString("en-IN")}`, 14, 24);
 
   // Client Details Card
   doc.setTextColor(charcoal[0], charcoal[1], charcoal[2]);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
-  doc.text(`Organization: ${params.clientName}`, 14, 38);
+  doc.text(`Company / Organization: ${params.clientName}`, 14, 38);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.text(`Industry: ${params.industry} | Scope: Multi-Department Assessment`, 14, 43);
+  doc.text(`Industry Focus: ${params.industry} | Scope: Operational AI Discovery`, 14, 43);
 
   let startY = 48;
 
-  // Build Table of Responses
+  // Build Table of Responses dynamically from the passed-in sections
   const tableRows: any[] = [];
 
-  HOSPITAL_QUESTIONNAIRE_SECTIONS.forEach((sec) => {
-    // Add section divider header row
+  params.sections.forEach((sec) => {
+    // Section divider row
     tableRows.push([
       {
-        content: `${sec.title.toUpperCase()} (Assigned: ${sec.defaultDepartment})`,
-        colSpan: 3,
+        content: `${sec.title.toUpperCase()} (Scope: ${sec.defaultDepartment})`,
+        colSpan: 2,
         styles: {
           fillColor: [240, 244, 248],
           textColor: primaryNavy,
@@ -69,31 +69,42 @@ export function generateA2000Pdf(params: PdfExportParams): void {
       },
     ]);
 
-    sec.questions.forEach((q) => {
+    sec.questions.forEach((q, idx) => {
       const stored = params.answers[q.key];
       let answerText = "— (Not filled) —";
-      if (stored && stored.value !== undefined && stored.value !== null) {
-        if (Array.isArray(stored.value)) {
-          answerText = stored.value.join(", ");
-        } else if (typeof stored.value === "object") {
-          answerText = JSON.stringify(stored.value);
-        } else {
-          // Replace rupee symbol if needed to prevent font rendering artifacts
-          answerText = String(stored.value).replace(/₹/g, "Rs. ");
+
+      if (stored) {
+        const val = stored.value !== undefined ? stored.value : stored;
+        if (val !== undefined && val !== null) {
+          if (Array.isArray(val)) {
+            let items = [...val];
+            if (stored.customOther) {
+              items = items.map((item) => (item === "Other" ? `Other: ${stored.customOther}` : item));
+            }
+            answerText = items.join(", ");
+          } else if (typeof val === "object") {
+            const pairs = Object.entries(val).map(([k, v]) => `${k}: ${v}/5`);
+            answerText = pairs.length > 0 ? pairs.join("\n") : "—";
+          } else {
+            let str = String(val).replace(/₹/g, "Rs. ");
+            if (str === "Other" && stored.customOther) {
+              str = `Other: ${stored.customOther}`;
+            }
+            answerText = str;
+          }
         }
       }
 
       tableRows.push([
-        q.label,
+        `${sec.number}.${idx + 1} ${q.label}`,
         answerText,
-        stored?.answeredByName || "—",
       ]);
     });
   });
 
   autoTable(doc, {
     startY: startY,
-    head: [["Question / Field", "Submitted Details", "Answered By"]],
+    head: [["Question / Topic", "Submitted Details"]],
     body: tableRows,
     theme: "striped",
     headStyles: {
@@ -108,13 +119,11 @@ export function generateA2000Pdf(params: PdfExportParams): void {
       cellPadding: 3,
     },
     columnStyles: {
-      0: { cellWidth: 70 },
-      1: { cellWidth: 80 },
-      2: { cellWidth: 35 },
+      0: { cellWidth: 90 },
+      1: { cellWidth: 92 },
     },
     margin: { top: 32, bottom: 20, left: 14, right: 14 },
     didDrawPage: (data) => {
-      // Footer on every page
       const pageCount = (doc as any).internal.getNumberOfPages();
       doc.setFontSize(8);
       doc.setTextColor(120, 120, 120);
@@ -131,6 +140,6 @@ export function generateA2000Pdf(params: PdfExportParams): void {
     },
   });
 
-  doc.save(`${params.caseCode}_A2000_Questionnaire.pdf`);
+  const safeFilename = params.clientName.replace(/[^a-zA-Z0-9_-]/g, "_");
+  doc.save(`${safeFilename}_${params.caseCode}.pdf`);
 }
-

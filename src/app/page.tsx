@@ -60,16 +60,11 @@ export default function HospitalQuestionnairePage() {
             type="button"
             onClick={() =>
               generateA2000Pdf({
-                caseCode: "A2000-DISCOVERY",
+                caseCode: "A2000-HOSPITAL",
                 clientName: hospitalName,
                 industry: "Healthcare Provider",
                 answers,
-                sections: HOSPITAL_QUESTIONNAIRE_SECTIONS.map((s) => ({
-                  sectionNumber: s.number,
-                  title: s.title,
-                  department: s.defaultDepartment,
-                  status: "completed",
-                })),
+                sections: HOSPITAL_QUESTIONNAIRE_SECTIONS,
               })
             }
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] px-3.5 py-1.5 rounded transition shadow-sm"
@@ -302,16 +297,11 @@ export default function HospitalQuestionnairePage() {
             type="button"
             onClick={() =>
               generateA2000Pdf({
-                caseCode: "A2000-DISCOVERY",
+                caseCode: "A2000-HOSPITAL",
                 clientName: hospitalName,
                 industry: "Healthcare Provider",
                 answers,
-                sections: HOSPITAL_QUESTIONNAIRE_SECTIONS.map((s) => ({
-                  sectionNumber: s.number,
-                  title: s.title,
-                  department: s.defaultDepartment,
-                  status: "completed",
-                })),
+                sections: HOSPITAL_QUESTIONNAIRE_SECTIONS,
               })
             }
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] px-4 py-2 rounded transition shadow-sm"
