@@ -793,3 +793,4 @@ export const JEWELLERY_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
     ],
   },
 ];
+

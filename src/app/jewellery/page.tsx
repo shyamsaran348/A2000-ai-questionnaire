@@ -1,14 +1,79 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { JEWELLERY_QUESTIONNAIRE_SECTIONS } from "@/lib/data/jewellery-seed";
 import { generateA2000Pdf } from "@/lib/services/pdf";
-import { Download, RefreshCw, Gem, AlertCircle } from "lucide-react";
+import SecurityGate from "@/components/SecurityGate";
+import {
+  Download,
+  RefreshCw,
+  Gem,
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle2,
+  Clock,
+  Sparkles,
+} from "lucide-react";
 
 export default function JewelleryQuestionnairePage() {
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const isInitialMount = useRef(true);
+
+  // 1. Restore from localStorage on initial load
+  useEffect(() => {
+    try {
+      const savedDraft = localStorage.getItem("a2000_draft_jewellery");
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        if (parsed && typeof parsed === "object") {
+          setAnswers(parsed);
+          setLastSaved("Restored from draft");
+        }
+      }
+    } catch (e) {
+      console.warn("Could not restore draft:", e);
+    }
+  }, []);
+
+  // 2. Debounced Autosave to localStorage & server
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    if (Object.keys(answers).length === 0) return;
+
+    setIsSaving(true);
+    const timeoutId = setTimeout(() => {
+      try {
+        localStorage.setItem("a2000_draft_jewellery", JSON.stringify(answers));
+        const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        setLastSaved(now);
+
+        fetch("/api/questionnaire/autosave", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            caseCode: "A2000-JW",
+            industry: "Jewellery Industry",
+            answers,
+          }),
+        }).catch(() => {});
+      } catch (err) {
+        console.warn("Autosave error:", err);
+      } finally {
+        setIsSaving(false);
+      }
+    }, 600);
+
+    return () => clearTimeout(timeoutId);
+  }, [answers]);
 
   const setAnswer = (questionKey: string, value: any, dept: string) => {
     setAnswers((prev) => ({
@@ -85,7 +150,7 @@ export default function JewelleryQuestionnairePage() {
     return true;
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!validateForm()) {
       alert("Please correct the highlighted fields before downloading the PDF.");
       return;
@@ -100,46 +165,94 @@ export default function JewelleryQuestionnairePage() {
       answers,
       sections: JEWELLERY_QUESTIONNAIRE_SECTIONS,
     });
+
+    try {
+      await fetch("/api/questionnaire/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          industry: "Jewellery Industry",
+          caseCode: "A2000-JW",
+          clientName: companyName,
+          email: answers["jw_q1_email"]?.value || "",
+          phone: answers["jw_q1_phone"]?.value || "",
+          contactPerson: answers["jw_q1_contact_person"]?.value || "",
+          answers,
+          submittedAt: new Date().toISOString(),
+        }),
+      });
+    } catch (e) {
+      console.warn("Server backup error:", e);
+    }
   };
 
   const handleClear = () => {
-    if (confirm("Are you sure you want to clear all filled answers?")) {
+    if (confirm("Are you sure you want to clear all filled answers? This will also remove the saved draft.")) {
       setAnswers({});
       setErrors({});
+      localStorage.removeItem("a2000_draft_jewellery");
+      setLastSaved(null);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto pb-16">
-      {/* Top Floating Action Bar */}
-      <div className="sticky top-4 z-40 bg-white/95 backdrop-blur-xs border border-slate-300 rounded shadow-sm px-4 py-2.5 mb-6 flex flex-wrap items-center justify-between gap-3 text-sm">
-        <div className="flex items-center space-x-3">
-          <span className="text-xs text-slate-700 font-semibold flex items-center gap-1.5">
-            <Gem className="w-4 h-4 text-[#C97835]" />
-            Jewellery Industry AI Discovery Questionnaire
-          </span>
-        </div>
+    <SecurityGate
+      title="Jewellery Industry AI Discovery Questionnaire"
+      subtitle="Manufacturing, Retail, Diamond Trading & Bullion Operational Assessment"
+    >
+      <div className="max-w-4xl mx-auto pb-16">
+        {/* Top Floating Action Bar */}
+        <div className="sticky top-4 z-40 bg-white/95 backdrop-blur-xs border border-slate-300 rounded shadow-sm px-4 py-2.5 mb-6 flex flex-wrap items-center justify-between gap-3 text-sm">
+          <div className="flex items-center space-x-3">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1 text-xs text-slate-600 hover:text-slate-900 font-medium px-2 py-1 rounded hover:bg-slate-100 transition"
+              title="Return to industry directory"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>All Industries</span>
+            </Link>
+            <span className="text-slate-300">|</span>
+            <span className="text-xs text-slate-800 font-semibold flex items-center gap-1.5">
+              <Gem className="w-4 h-4 text-[#C97835]" />
+              Jewellery Industry AI Discovery
+            </span>
+          </div>
 
-        <div className="flex items-center space-x-2">
-          <button
-            type="button"
-            onClick={handleClear}
-            className="inline-flex items-center gap-1 text-xs text-slate-600 hover:text-slate-900 border border-slate-300 bg-slate-50 hover:bg-slate-100 px-2.5 py-1.5 rounded transition"
-          >
-            <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-            Clear Form
-          </button>
+          <div className="flex items-center space-x-2">
+            <div className="hidden sm:flex items-center gap-1 text-[11px] text-slate-500 mr-1">
+              {isSaving ? (
+                <>
+                  <Clock className="w-3.5 h-3.5 text-amber-500 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : lastSaved ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Saved {lastSaved}</span>
+                </>
+              ) : null}
+            </div>
 
-          <button
-            type="button"
-            onClick={handleDownload}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] px-3.5 py-1.5 rounded transition shadow-sm"
-          >
-            <Download className="w-3.5 h-3.5 text-[#C97835]" />
-            Download PDF
-          </button>
+            <button
+              type="button"
+              onClick={handleClear}
+              className="inline-flex items-center gap-1 text-xs text-slate-600 hover:text-slate-900 border border-slate-300 bg-slate-50 hover:bg-slate-100 px-2.5 py-1.5 rounded transition"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+              Clear
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] px-3.5 py-1.5 rounded transition shadow-sm"
+            >
+              <Download className="w-3.5 h-3.5 text-[#C97835]" />
+              Download PDF
+            </button>
+          </div>
         </div>
-      </div>
 
       {/* Main Single Document Form */}
       <div className="bg-white border border-slate-300 rounded shadow-sm p-6 sm:p-10 space-y-8">
@@ -476,5 +589,7 @@ export default function JewelleryQuestionnairePage() {
 
       </div>
     </div>
+    </SecurityGate>
   );
 }
+

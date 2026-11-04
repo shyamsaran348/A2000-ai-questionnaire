@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "A2000 Hospital AI Opportunity Discovery Questionnaire",
-  description: "A2000 AI Opportunity Assessment Questionnaire for Healthcare Providers",
+  title: "A2000 AI Opportunity Discovery Portal",
+  description: "A2000 AI Opportunity Assessment Platform for Enterprise Industries",
 };
 
 export default function RootLayout({

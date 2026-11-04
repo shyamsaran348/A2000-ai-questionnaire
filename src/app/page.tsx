@@ -1,409 +1,305 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { HOSPITAL_QUESTIONNAIRE_SECTIONS } from "@/lib/data/hospital-seed";
-import { generateA2000Pdf } from "@/lib/services/pdf";
-import { Download, RefreshCw, AlertCircle } from "lucide-react";
+import SecurityGate from "@/components/SecurityGate";
+import {
+  Building2,
+  UtensilsCrossed,
+  Gem,
+  Landmark,
+  Factory,
+  ChefHat,
+  ArrowRight,
+  ShieldCheck,
+  Clock,
+  FileText,
+  Sparkles,
+  CheckCircle2,
+  Lock,
+} from "lucide-react";
 
-export default function HospitalQuestionnairePage() {
-  const [answers, setAnswers] = useState<Record<string, any>>({});
-  const [errors, setErrors] = useState<Record<string, string>>({});
+interface IndustryCardProps {
+  title: string;
+  category: string;
+  description: string;
+  icon: React.ReactNode;
+  href: string;
+  caseCode: string;
+  storageKey: string;
+  highlights: string[];
+}
 
-  const setAnswer = (questionKey: string, value: any, dept: string) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [questionKey]: {
-        value,
-        department: dept,
-      },
-    }));
+function IndustryCard({
+  title,
+  category,
+  description,
+  icon,
+  href,
+  caseCode,
+  storageKey,
+  highlights,
+}: IndustryCardProps) {
+  const [hasDraft, setHasDraft] = useState<boolean>(false);
 
-    if (errors[questionKey]) {
-      setErrors((prev) => {
-        const next = { ...prev };
-        delete next[questionKey];
-        return next;
-      });
-    }
-  };
-
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    HOSPITAL_QUESTIONNAIRE_SECTIONS.forEach((sec) => {
-      sec.questions.forEach((q) => {
-        const stored = answers[q.key];
-        const val = stored?.value;
-
-        // 1. Required check
-        if (q.required) {
-          if (!val || (typeof val === "string" && !val.trim())) {
-            newErrors[q.key] = `${q.label} is required.`;
-            return;
-          }
+  useEffect(() => {
+    try {
+      const draft = localStorage.getItem(storageKey);
+      if (draft) {
+        const parsed = JSON.parse(draft);
+        if (parsed && Object.keys(parsed).length > 0) {
+          setHasDraft(true);
         }
-
-        // 2. Email format validation
-        if (q.key.includes("email") && val && typeof val === "string" && val.trim()) {
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          if (!emailRegex.test(val.trim())) {
-            newErrors[q.key] = "Please enter a valid email address.";
-            return;
-          }
-        }
-
-        // 3. Phone format validation
-        if (q.key.includes("phone") && val && typeof val === "string" && val.trim()) {
-          const digitsOnly = val.replace(/\D/g, "");
-          if (digitsOnly.length < 10) {
-            newErrors[q.key] = "Please enter a valid phone number with at least 10 digits.";
-            return;
-          }
-        }
-      });
-    });
-
-    setErrors(newErrors);
-
-    if (Object.keys(newErrors).length > 0) {
-      const firstErrorKey = Object.keys(newErrors)[0];
-      const el = document.getElementById(`field-${firstErrorKey}`);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
       }
-      return false;
-    }
-
-    return true;
-  };
-
-  const handleDownload = () => {
-    if (!validateForm()) {
-      alert("Please fill in the required fields highlighted in red before downloading the PDF.");
-      return;
-    }
-
-    const hospitalName = (answers["q1_1_hospital_name"]?.value as string) || "Healthcare Facility";
-
-    generateA2000Pdf({
-      caseCode: "A2000-HOSPITAL",
-      clientName: hospitalName,
-      industry: "Healthcare Provider",
-      answers,
-      sections: HOSPITAL_QUESTIONNAIRE_SECTIONS,
-    });
-  };
-
-  const handleClear = () => {
-    if (confirm("Are you sure you want to clear all filled answers?")) {
-      setAnswers({});
-      setErrors({});
-    }
-  };
+    } catch {}
+  }, [storageKey]);
 
   return (
-    <div className="max-w-4xl mx-auto pb-16">
-      {/* Top Floating Action Bar */}
-      <div className="sticky top-4 z-40 bg-white/95 backdrop-blur-xs border border-slate-300 rounded shadow-sm px-4 py-2.5 mb-6 flex flex-wrap items-center justify-between gap-3 text-sm">
-        <div className="flex items-center space-x-3">
-          <span className="text-xs text-slate-700 font-semibold">
-            Hospital AI Opportunity Discovery Questionnaire
-          </span>
+    <div className="bg-white border border-slate-300 hover:border-[#17324D] rounded-lg p-6 shadow-xs hover:shadow-md transition duration-200 flex flex-col justify-between group relative">
+      {hasDraft && (
+        <div className="absolute top-3 right-3 flex items-center gap-1 bg-amber-50 text-amber-800 border border-amber-300 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+          <Clock className="w-3 h-3 text-amber-600" />
+          <span>Draft in Progress</span>
+        </div>
+      )}
+
+      <div>
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-11 h-11 rounded-lg bg-slate-100 group-hover:bg-[#17324D]/10 flex items-center justify-center transition">
+            {icon}
+          </div>
+          <div>
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-[#C97835]">
+              {category}
+            </span>
+            <h3 className="text-base font-bold text-slate-900 group-hover:text-[#17324D] transition">
+              {title}
+            </h3>
+          </div>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <Link
-            href="/food-and-beverage"
-            className="text-xs text-slate-500 hover:text-slate-800 underline px-2 py-1"
-          >
-            Switch to Food & Beverage Form →
-          </Link>
+        <p className="text-xs text-slate-600 leading-relaxed mb-4">
+          {description}
+        </p>
 
-          <button
-            type="button"
-            onClick={handleClear}
-            className="inline-flex items-center gap-1 text-xs text-slate-600 hover:text-slate-900 border border-slate-300 bg-slate-50 hover:bg-slate-100 px-2.5 py-1.5 rounded transition"
-          >
-            <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-            Clear Form
-          </button>
-
-          <button
-            type="button"
-            onClick={handleDownload}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] px-3.5 py-1.5 rounded transition shadow-sm"
-          >
-            <Download className="w-3.5 h-3.5 text-[#C97835]" />
-            Download PDF
-          </button>
+        <div className="space-y-1.5 mb-5 border-t border-slate-100 pt-3">
+          {highlights.map((h, i) => (
+            <div key={i} className="flex items-center gap-1.5 text-[11px] text-slate-600">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>{h}</span>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Main Single Document Form */}
-      <div className="bg-white border border-slate-300 rounded shadow-sm p-6 sm:p-10 space-y-8">
+      <div className="border-t border-slate-200 pt-4 flex items-center justify-between">
+        <span className="text-[11px] font-mono text-slate-500">
+          ID: {caseCode}
+        </span>
+        <Link
+          href={href}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] group-hover:bg-[#0f2235] px-3.5 py-1.5 rounded transition shadow-xs"
+        >
+          <span>{hasDraft ? "Resume Form" : "Start Form"}</span>
+          <ArrowRight className="w-3.5 h-3.5 text-[#C97835] group-hover:translate-x-0.5 transition" />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+export default function HomePage() {
+  const industries: IndustryCardProps[] = [
+    {
+      title: "Hospital & Healthcare",
+      category: "Healthcare Providers",
+      description:
+        "Designed for tertiary care, specialty hospitals, clinic networks and surgical centers seeking operational AI enhancements.",
+      icon: <Building2 className="w-6 h-6 text-[#17324D]" />,
+      href: "/hospital",
+      caseCode: "A2000-HOSPITAL",
+      storageKey: "a2000_draft_hospital",
+      highlights: [
+        "12 Sections • HIS/EMR Integration",
+        "Clinical Documentation & Multilingual Triage",
+        "Pharmacy, Diagnostics & Insurance Desks",
+      ],
+    },
+    {
+      title: "Food & Beverage",
+      category: "FMCG / Food Processing",
+      description:
+        "Comprehensive discovery for packaged food manufacturers, beverage brands, spices, bakeries, and HoReCa food providers.",
+      icon: <UtensilsCrossed className="w-6 h-6 text-[#17324D]" />,
+      href: "/food-and-beverage",
+      caseCode: "A2000-FB",
+      storageKey: "a2000_draft_food_beverage",
+      highlights: [
+        "12 Sections • Raw Material Sourcing",
+        "Recipe Formulation & Batch QA Consistency",
+        "Distributor Sales, Q-Commerce & Logistics",
+      ],
+    },
+    {
+      title: "Jewellery & Gems",
+      category: "Luxury Goods & Retail",
+      description:
+        "Tailored for gold/silver/diamond manufacturers, wholesalers, boutique designers and multi-city showroom retail chains.",
+      icon: <Gem className="w-6 h-6 text-[#17324D]" />,
+      href: "/jewellery",
+      caseCode: "A2000-JW",
+      storageKey: "a2000_draft_jewellery",
+      highlights: [
+        "12 Sections • CAD/CAM Design & Casting",
+        "Hallmarking, BIS Compliance & Purity Tracking",
+        "High-Value Inventory & Showroom Management",
+      ],
+    },
+    {
+      title: "Finance & FinTech",
+      category: "Banking & Financial Services",
+      description:
+        "Assessment for banks, NBFCs, lending platforms, digital payment processors, InsurTech and wealth management institutions.",
+      icon: <Landmark className="w-6 h-6 text-[#17324D]" />,
+      href: "/finance",
+      caseCode: "A2000-FN",
+      storageKey: "a2000_draft_finance",
+      highlights: [
+        "12 Sections • Customer Onboarding & KYC",
+        "Automated Credit Underwriting & NPA Monitoring",
+        "AML, Fraud Detection & Regulatory Reporting",
+      ],
+    },
+    {
+      title: "Manufacturing & Industrial",
+      category: "Discrete & Process Manufacturing",
+      description:
+        "Operational assessment for engineering, industrial parts, assembly lines, automated machinery and supply chain tracking.",
+      icon: <Factory className="w-6 h-6 text-[#17324D]" />,
+      href: "/food-and-beverage", // Shared industrial questionnaire structure
+      caseCode: "A2000-MFG",
+      storageKey: "a2000_draft_mfg",
+      highlights: [
+        "Production Scheduling & Material Wastage",
+        "Machine Maintenance & Predictive Downtime",
+        "Supplier Quality & Warehouse Stock Logistics",
+      ],
+    },
+    {
+      title: "Restaurants & Hospitality",
+      category: "Food Services & HoReCa",
+      description:
+        "Specialized discovery for restaurant chains, cloud kitchens, fine dining and hotel food services operations.",
+      icon: <ChefHat className="w-6 h-6 text-[#17324D]" />,
+      href: "/food-and-beverage", // Food & Beverage covers full HoReCa & dining workflows
+      caseCode: "A2000-REST",
+      storageKey: "a2000_draft_rest",
+      highlights: [
+        "Central Kitchen Operations & Yield Tracking",
+        "Delivery Platform Reconciliation (Swiggy/Zomato)",
+        "Dine-In Customer Experience & Inventory Shelf Life",
+      ],
+    },
+  ];
+
+  return (
+    <SecurityGate
+      title="A2000 AI Opportunity Discovery Portal"
+      subtitle="Confidential Enterprise Questionnaire Platform • Select Your Industry to Begin"
+    >
+      <div className="max-w-5xl mx-auto pb-16 space-y-8">
         
-        {/* Document Header */}
-        <div className="border-b border-slate-300 pb-6">
-          <div className="flex items-center justify-between mb-3">
-            <Image
-              src="/a2000-logo.png"
-              alt="A2000 Logo"
-              width={120}
-              height={38}
-              className="object-contain"
-              priority
-            />
-            <span className="text-[11px] font-bold tracking-widest uppercase text-slate-500 border border-slate-300 bg-slate-50 px-2.5 py-1 rounded">
-              CONFIDENTIAL
-            </span>
+        {/* Main Portal Header */}
+        <div className="bg-white border border-slate-300 rounded-lg shadow-sm p-6 sm:p-8">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-6 mb-6">
+            <div className="flex items-center space-x-4">
+              <Image
+                src="/a2000-logo.png"
+                alt="A2000 Logo"
+                width={130}
+                height={40}
+                className="object-contain"
+                priority
+              />
+              <div className="hidden sm:block border-l border-slate-300 pl-4">
+                <span className="text-xs font-bold text-slate-800 tracking-wide uppercase block">
+                  AI Enablement Service
+                </span>
+                <span className="text-[11px] text-slate-500 block">
+                  Industry Discovery &amp; Readiness Platform
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold tracking-widest uppercase text-slate-600 border border-slate-300 bg-slate-50 px-2.5 py-1 rounded flex items-center gap-1">
+                <Lock className="w-3 h-3 text-[#C97835]" />
+                CONFIDENTIAL
+              </span>
+            </div>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-            Hospital AI Opportunity Discovery Questionnaire
-          </h1>
-          <p className="text-xs text-slate-600 mt-1">
-            Confidential Operational Assessment • A2000 AI Enablement Service
-          </p>
+
+          <div className="space-y-2">
+            <h1 className="text-xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+              Enterprise AI Opportunity Discovery Portal
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-600 max-w-3xl leading-relaxed">
+              Select your industry below to open the dedicated discovery questionnaire. All forms feature{" "}
+              <strong>continuous real-time autosave</strong>, verified field validations, and one-click{" "}
+              <strong>Executive PDF Generation</strong> upon completion.
+            </p>
+          </div>
+
+          {/* Quick Metrics Bar */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-slate-100">
+            <div className="bg-slate-50 p-3 rounded border border-slate-200">
+              <span className="text-[10px] text-slate-500 font-medium block">Standard Length</span>
+              <span className="text-sm font-bold text-slate-900 flex items-center gap-1 mt-0.5">
+                <FileText className="w-3.5 h-3.5 text-[#C97835]" />
+                12 Key Sections
+              </span>
+            </div>
+            <div className="bg-slate-50 p-3 rounded border border-slate-200">
+              <span className="text-[10px] text-slate-500 font-medium block">Completion Time</span>
+              <span className="text-sm font-bold text-slate-900 flex items-center gap-1 mt-0.5">
+                <Clock className="w-3.5 h-3.5 text-[#C97835]" />
+                25–35 Minutes
+              </span>
+            </div>
+            <div className="bg-slate-50 p-3 rounded border border-slate-200">
+              <span className="text-[10px] text-slate-500 font-medium block">Form State</span>
+              <span className="text-sm font-bold text-slate-900 flex items-center gap-1 mt-0.5">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                Live Autosave Active
+              </span>
+            </div>
+            <div className="bg-slate-50 p-3 rounded border border-slate-200">
+              <span className="text-[10px] text-slate-500 font-medium block">Output Document</span>
+              <span className="text-sm font-bold text-slate-900 flex items-center gap-1 mt-0.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                Confidential PDF
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Guidance Box */}
-        <div className="p-3 bg-slate-50 border border-slate-200 rounded text-xs text-slate-600 leading-relaxed">
-          Please fill in the form below. Once completed, click <strong>Download PDF</strong> at the top or bottom of the page to save a copy to your device and email it to the A2000 team.
-        </div>
-
-        {/* 12 Generalized Sections */}
-        <div className="space-y-10">
-          {HOSPITAL_QUESTIONNAIRE_SECTIONS.map((sec) => (
-            <section
-              key={sec.number}
-              id={`section-${sec.number}`}
-              className="border-t border-slate-200 pt-8 first:border-0 first:pt-0"
-            >
-              {/* Section Heading */}
-              <div className="mb-4">
-                <h2 className="text-lg font-bold text-slate-900">
-                  {sec.title}
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Department: <strong>{sec.defaultDepartment}</strong>
-                </p>
-              </div>
-
-              {/* Questions */}
-              <div className="space-y-5">
-                {sec.questions.map((q, idx) => {
-                  const currentVal = answers[q.key]?.value;
-                  const errorMsg = errors[q.key];
-
-                  return (
-                    <div
-                      key={q.key}
-                      id={`field-${q.key}`}
-                      className={`space-y-1.5 text-sm p-2 rounded transition ${
-                        errorMsg ? "bg-red-50/50 border border-red-200" : ""
-                      }`}
-                    >
-                      <label className="block font-medium text-slate-800">
-                        {sec.number}.{idx + 1} {q.label} {q.required && <span className="text-red-500 font-bold">*</span>}
-                      </label>
-
-                      {/* Text Input */}
-                      {q.type === "text" && (
-                        <input
-                          type={q.key.includes("email") ? "email" : q.key.includes("phone") ? "tel" : "text"}
-                          value={currentVal || ""}
-                          placeholder={q.placeholder}
-                          onChange={(e) => setAnswer(q.key, e.target.value, sec.defaultDepartment)}
-                          className={`w-full text-sm p-2 border rounded bg-white text-slate-900 focus:outline-none ${
-                            errorMsg ? "border-red-400 focus:border-red-500" : "border-slate-300 focus:border-[#17324D]"
-                          }`}
-                        />
-                      )}
-
-                      {/* Textarea */}
-                      {q.type === "textarea" && (
-                        <textarea
-                          rows={3}
-                          value={currentVal || ""}
-                          placeholder={q.placeholder}
-                          onChange={(e) => setAnswer(q.key, e.target.value, sec.defaultDepartment)}
-                          className={`w-full text-sm p-2 border rounded bg-white text-slate-900 focus:outline-none ${
-                            errorMsg ? "border-red-400 focus:border-red-500" : "border-slate-300 focus:border-[#17324D]"
-                          }`}
-                        />
-                      )}
-
-                      {/* Radio Selection */}
-                      {q.type === "radio" && (
-                        <div className="space-y-1.5 pt-0.5">
-                          {q.options?.map((opt: any) => {
-                            const optVal = typeof opt === "string" ? opt : opt.value;
-                            const optLabel = typeof opt === "string" ? opt : opt.label;
-                            const isChecked = currentVal === optVal;
-
-                            return (
-                              <div
-                                key={optVal}
-                                className="flex items-center gap-2 text-xs"
-                              >
-                                <input
-                                  type="radio"
-                                  id={`${q.key}-${optVal}`}
-                                  name={q.key}
-                                  checked={isChecked}
-                                  onClick={() => {
-                                    const newVal = isChecked ? null : optVal;
-                                    setAnswer(q.key, newVal, sec.defaultDepartment);
-                                  }}
-                                  onChange={() => {}}
-                                  className="accent-[#17324D] cursor-pointer w-4 h-4"
-                                />
-                                <label
-                                  htmlFor={`${q.key}-${optVal}`}
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    const newVal = isChecked ? null : optVal;
-                                    setAnswer(q.key, newVal, sec.defaultDepartment);
-                                  }}
-                                  className={`cursor-pointer select-none ${isChecked ? "font-semibold text-slate-900" : "text-slate-700"}`}
-                                >
-                                  {optLabel}
-                                </label>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {/* Checkbox Options */}
-                      {q.type === "checkbox" && (
-                        <div className="space-y-1.5 pt-0.5">
-                          {q.options?.map((opt: any) => {
-                            const optVal = typeof opt === "string" ? opt : opt.value;
-                            const optLabel = typeof opt === "string" ? opt : opt.label;
-                            const selectedList: string[] = Array.isArray(currentVal) ? currentVal : [];
-                            const isChecked = selectedList.includes(optVal);
-
-                            return (
-                              <div
-                                key={optVal}
-                                className="flex items-center gap-2 text-xs"
-                              >
-                                <input
-                                  type="checkbox"
-                                  id={`${q.key}-${optVal}`}
-                                  checked={isChecked}
-                                  onChange={() => {
-                                    const updated = isChecked
-                                      ? selectedList.filter((item) => item !== optVal)
-                                      : [...selectedList, optVal];
-                                    setAnswer(q.key, updated, sec.defaultDepartment);
-                                  }}
-                                  className="accent-[#17324D] cursor-pointer w-4 h-4 rounded"
-                                />
-                                <label
-                                  htmlFor={`${q.key}-${optVal}`}
-                                  className={`cursor-pointer select-none ${isChecked ? "font-semibold text-slate-900" : "text-slate-700"}`}
-                                >
-                                  {optLabel}
-                                </label>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {/* Rating Matrix */}
-                      {q.type === "rating_grid" && (
-                        <div className="overflow-x-auto border border-slate-200 rounded mt-1.5">
-                          <table className="w-full text-left text-xs border-collapse">
-                            <thead>
-                              <tr className="bg-slate-50 border-b border-slate-200 text-slate-700">
-                                <th className="p-2 font-semibold">Priority Area</th>
-                                {q.gridColumns?.map((col) => (
-                                  <th key={col} className="p-2 text-center font-medium text-slate-600">
-                                    {col}
-                                  </th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                              {q.gridRows?.map((row) => {
-                                const gridVals = (typeof currentVal === "object" && currentVal !== null) ? currentVal : {};
-                                const activeRating = gridVals[row];
-
-                                return (
-                                  <tr key={row}>
-                                    <td className="p-2 text-slate-800">{row}</td>
-                                    {q.gridColumns?.map((col, cIdx) => {
-                                      const ratingNum = cIdx + 1;
-                                      const isSelected = activeRating === ratingNum;
-
-                                      return (
-                                        <td key={col} className="p-1.5 text-center">
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              const updated = { ...gridVals };
-                                              if (isSelected) {
-                                                delete updated[row];
-                                              } else {
-                                                updated[row] = ratingNum;
-                                              }
-                                              setAnswer(q.key, updated, sec.defaultDepartment);
-                                            }}
-                                            className={`w-6 h-6 rounded-full text-xs font-medium transition ${
-                                              isSelected
-                                                ? "bg-[#C97835] text-white"
-                                                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                                            }`}
-                                          >
-                                            {ratingNum}
-                                          </button>
-                                        </td>
-                                      );
-                                    })}
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-
-                      {/* Error Message */}
-                      {errorMsg && (
-                        <div className="text-xs text-red-600 font-medium flex items-center gap-1 mt-1">
-                          <AlertCircle className="w-3.5 h-3.5" />
-                          <span>{errorMsg}</span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
+        {/* Industry Selection Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {industries.map((ind) => (
+            <IndustryCard key={ind.caseCode} {...ind} />
           ))}
         </div>
 
-        {/* Bottom Download Bar */}
-        <div className="border-t border-slate-300 pt-6 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs text-slate-500">
-            Click Download PDF to save your completed responses as a PDF file.
+        {/* Footer Info */}
+        <div className="border-t border-slate-300 pt-6 text-center text-xs text-slate-500 space-y-1">
+          <p>© 2026 A2000 AI Enablement Service. All rights reserved.</p>
+          <p className="text-[11px] text-slate-400">
+            Data submitted through this portal is encrypted and treated under strict Non-Disclosure Agreement (NDA).
           </p>
-
-          <button
-            type="button"
-            onClick={handleDownload}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] px-4 py-2 rounded transition shadow-sm"
-          >
-            <Download className="w-3.5 h-3.5 text-[#C97835]" />
-            Download PDF
-          </button>
         </div>
 
       </div>
-    </div>
+    </SecurityGate>
   );
 }
