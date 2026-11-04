@@ -1,8 +1,8 @@
-# A2000 AI Opportunity Discovery Platform
+# A2000 | AI Enablement — Questionnaires
 
-An enterprise Next.js 16 + TypeScript web application built for the **A2000 AI Enablement Service**. The platform conducts structured, confidential AI readiness and operational assessments across key industry verticals.
+Next.js 16 + TypeScript application for A2000 AI Enablement discovery questionnaires across industry verticals (Healthcare, Food & Beverage, Jewellery, Finance & FinTech, Manufacturing, and Restaurants).
 
-Clients and consultants use this platform to identify automation opportunities, pinpoint operational bottlenecks, evaluate existing data/IT maturity, and export branded, executive-ready PDF deliverables and Excel workbooks.
+Used by clients and consultants to assess business operations, current software systems, and departmental workflows to identify practical opportunities for AI adoption and process automation.
 
 ---
 

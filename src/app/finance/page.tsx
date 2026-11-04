@@ -207,8 +207,8 @@ export default function FinanceQuestionnairePage() {
 
   return (
     <SecurityGate
-      title="Finance & FinTech AI Discovery Questionnaire"
-      subtitle="Banking, NBFC, Lending, Payments & Wealth Management Operational Assessment"
+      title="Finance & FinTech Discovery Questionnaire"
+      subtitle="A2000 | AI Enablement"
     >
       <div className="max-w-4xl mx-auto pb-16">
         
@@ -221,12 +221,12 @@ export default function FinanceQuestionnairePage() {
               title="Return to industry directory"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>All Industries</span>
+              <span>All Questionnaires</span>
             </Link>
             <span className="text-slate-300">|</span>
             <span className="text-xs text-slate-800 font-semibold flex items-center gap-1.5">
               <Landmark className="w-4 h-4 text-[#C97835]" />
-              Finance & FinTech Discovery Questionnaire
+              Finance & FinTech Questionnaire
             </span>
           </div>
 
@@ -241,7 +241,7 @@ export default function FinanceQuestionnairePage() {
               ) : lastSaved ? (
                 <>
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Saved {lastSaved}</span>
+                  <span>Saved</span>
                 </>
               ) : null}
             </div>
@@ -287,20 +287,17 @@ export default function FinanceQuestionnairePage() {
             <div className="flex items-center gap-2">
               <Landmark className="w-6 h-6 text-[#17324D]" />
               <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-                Finance & FinTech AI Discovery Questionnaire
+                Finance & FinTech Discovery Questionnaire
               </h1>
             </div>
             <p className="text-xs text-slate-600 mt-1">
-              Confidential Operational Assessment • A2000 AI Enablement Service • Case Code: A2000-FN
+              A2000 | AI Enablement • Confidential Assessment • Case: A2000-FN
             </p>
           </div>
 
-          {/* Guidance Box with Autosave Notice */}
-          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded text-xs text-slate-600 leading-relaxed flex items-start gap-2.5">
-            <Sparkles className="w-4 h-4 text-[#C97835] shrink-0 mt-0.5" />
-            <div>
-              <strong>Continuous Autosave Active:</strong> Your responses are automatically saved in real time so you won&apos;t lose any progress. Once completed, click <strong>Download PDF</strong> to generate the formatted executive report and submit a copy to the A2000 advisory team.
-            </div>
+          {/* Guidance Box */}
+          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded text-xs text-slate-600 leading-relaxed">
+            Your answers will help A2000 understand your business operations, technology, and challenges to identify opportunities for AI enablement. Approximate answers are fine. Autosave is active and your responses are saved automatically.
           </div>
 
           {/* 12 Generalized Sections */}

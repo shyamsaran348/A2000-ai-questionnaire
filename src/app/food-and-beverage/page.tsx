@@ -199,8 +199,8 @@ export default function FoodBeverageQuestionnairePage() {
 
   return (
     <SecurityGate
-      title="Food & Beverage AI Discovery Questionnaire"
-      subtitle="FMCG, Food Processing, Spices, Bakery & Beverage Operational Assessment"
+      title="Food & Beverage Discovery Questionnaire"
+      subtitle="A2000 | AI Enablement"
     >
       <div className="max-w-4xl mx-auto pb-16">
         {/* Top Floating Action Bar */}
@@ -212,12 +212,12 @@ export default function FoodBeverageQuestionnairePage() {
               title="Return to industry directory"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>All Industries</span>
+              <span>All Questionnaires</span>
             </Link>
             <span className="text-slate-300">|</span>
             <span className="text-xs text-slate-800 font-semibold flex items-center gap-1.5">
               <UtensilsCrossed className="w-4 h-4 text-[#C97835]" />
-              Food & Beverage AI Discovery
+              Food & Beverage Questionnaire
             </span>
           </div>
 
@@ -231,7 +231,7 @@ export default function FoodBeverageQuestionnairePage() {
               ) : lastSaved ? (
                 <>
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Saved {lastSaved}</span>
+                  <span>Saved</span>
                 </>
               ) : null}
             </div>
@@ -274,17 +274,20 @@ export default function FoodBeverageQuestionnairePage() {
               CONFIDENTIAL
             </span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-            Company Discovery Questionnaire
-          </h1>
+          <div className="flex items-center gap-2">
+            <UtensilsCrossed className="w-6 h-6 text-[#17324D]" />
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
+              Food & Beverage Discovery Questionnaire
+            </h1>
+          </div>
           <p className="text-xs text-slate-600 mt-1">
-            Your answers will help A2000 understand your business model, operations, technology, data environment, and current challenges, and identify areas where AI or automation may improve efficiency and decision-making.
+            A2000 | AI Enablement • Confidential Assessment • Case: A2000-FB
           </p>
         </div>
 
         {/* Guidance Box */}
-        <div className="p-3 bg-slate-50 border border-slate-200 rounded text-xs text-slate-600 leading-relaxed">
-          Please fill in the form below. Once completed, click <strong>Download PDF</strong> at the top or bottom of the page to save a copy to your device and email it to the A2000 team.
+        <div className="p-3.5 bg-slate-50 border border-slate-200 rounded text-xs text-slate-600 leading-relaxed">
+          Your answers will help A2000 understand your business operations, technology, and challenges to identify opportunities for AI enablement. Approximate answers are fine. Autosave is active and your responses are saved automatically.
         </div>
 
         {/* 12 Sections */}

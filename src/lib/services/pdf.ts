@@ -33,7 +33,7 @@ export function generateA2000Pdf(params: PdfExportParams): void {
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
-  doc.text("A2000 AI ENABLEMENT SERVICE", 14, 12);
+  doc.text("A2000 | AI ENABLEMENT", 14, 12);
 
   // Top-Right Confidential Badge
   doc.setFontSize(10);
@@ -42,7 +42,7 @@ export function generateA2000Pdf(params: PdfExportParams): void {
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.text(`${params.industry} Discovery Questionnaire — Confidential Assessment`, 14, 18);
+  doc.text(`${params.industry} — Discovery Questionnaire`, 14, 18);
   doc.text(`Case ID: ${params.caseCode} | Date: ${new Date().toLocaleDateString("en-IN")}`, 14, 24);
 
   // Client Details Card
@@ -53,7 +53,7 @@ export function generateA2000Pdf(params: PdfExportParams): void {
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.text(`Industry Focus: ${params.industry} | Scope: Operational AI Discovery`, 14, 43);
+  doc.text(`Industry: ${params.industry}`, 14, 43);
 
   let startY = 48;
 
@@ -133,7 +133,7 @@ export function generateA2000Pdf(params: PdfExportParams): void {
       doc.setFontSize(8);
       doc.setTextColor(120, 120, 120);
       doc.text(
-        "CONFIDENTIAL & PROPRIETARY — A2000 AI Opportunity Assessment",
+        "CONFIDENTIAL — A2000 | AI Enablement",
         14,
         doc.internal.pageSize.height - 10
       );
