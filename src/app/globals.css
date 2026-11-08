@@ -1,4 +1,6 @@
-/* Base Clean Reset */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* Base Clean Reset & Executive Font Hierarchy */
 * {
   box-sizing: border-box;
 }
@@ -7,6 +9,17 @@ html, body {
   margin: 0;
   padding: 0;
   background-color: #f8fafc;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* Ensure inputs, buttons, and textareas inherit font typography cleanly */
+input, textarea, select, button {
+  font-family: inherit;
 }
 
 /* Custom scrollbar for modern dashboards */
