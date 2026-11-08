@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { HOSPITAL_QUESTIONNAIRE_SECTIONS } from "@/lib/data/hospital-seed";
-import { generateA2000Pdf } from "@/lib/services/pdf";
+import { generateA2000Pdf, downloadPdf } from "@/lib/services/pdf";
 import SecurityGate from "@/components/SecurityGate";
 import {
   Download,
@@ -14,7 +14,6 @@ import {
   ArrowLeft,
   CheckCircle2,
   Clock,
-  Sparkles,
 } from "lucide-react";
 
 export default function HospitalQuestionnairePage() {
@@ -23,6 +22,8 @@ export default function HospitalQuestionnairePage() {
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const isInitialMount = useRef(true);
 
   // 1. Restore from localStorage on load
@@ -163,9 +164,10 @@ export default function HospitalQuestionnairePage() {
     }
 
     setIsSubmitting(true);
+    setSubmitError(null);
     const hospitalName = (answers["q1_1_hospital_name"]?.value as string) || "Healthcare Facility";
 
-    // 1. Generate PDF deliverable & get base64
+    // 1. Generate PDF (no browser download yet — wait for server confirmation)
     const pdfResult = generateA2000Pdf({
       caseCode: "A2000-HOSPITAL",
       clientName: hospitalName,
@@ -174,7 +176,7 @@ export default function HospitalQuestionnairePage() {
       sections: HOSPITAL_QUESTIONNAIRE_SECTIONS,
     });
 
-    // 2. Persist in database & email PDF to ramyadevi@a2000india.com
+    // 2. Submit to server — persist in DB & email PDF
     try {
       const res = await fetch("/api/questionnaire/submit", {
         method: "POST",
@@ -194,12 +196,16 @@ export default function HospitalQuestionnairePage() {
       });
       const data = await res.json();
       if (data.success) {
-        alert(
-          "Thank you! Your questionnaire has been submitted to A2000, stored in the database, and a copy has been sent to ramyadevi@a2000india.com. The PDF has also been saved to your device."
-        );
+        // 3. Trigger browser download only after server confirms
+        downloadPdf(pdfResult.doc, pdfResult.filename);
+        setIsSubmitted(true);
+        localStorage.removeItem("a2000_draft_hospital");
+      } else {
+        setSubmitError("Submission could not be recorded. Please contact your A2000 representative.");
       }
     } catch (e) {
-      console.warn("Could not submit copy to server:", e);
+      console.warn("Could not submit to server:", e);
+      setSubmitError("There was a problem reaching our servers. Please try again or contact your A2000 representative.");
     } finally {
       setIsSubmitting(false);
     }
@@ -220,7 +226,37 @@ export default function HospitalQuestionnairePage() {
       subtitle="A2000 | AI Enablement"
     >
       <div className="max-w-4xl mx-auto pb-16">
-        
+
+        {/* ── Success Screen ── */}
+        {isSubmitted && (
+          <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-6 py-20">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-6">
+              <CheckCircle2 className="w-9 h-9 text-emerald-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-[#17324D] mb-3">Assessment Submitted</h2>
+            <p className="text-slate-600 max-w-md mb-8 leading-relaxed">
+              Thank you. Your responses have been securely received by A2000. Our team will review your submission and reach out to you shortly.
+            </p>
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] px-5 py-2.5 rounded transition shadow-sm"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Return to Home
+            </Link>
+          </div>
+        )}
+
+        {/* ── Error Banner ── */}
+        {submitError && !isSubmitted && (
+          <div className="mb-4 flex items-start gap-3 bg-red-50 border border-red-200 rounded px-4 py-3 text-sm text-red-800">
+            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-red-500" />
+            <span>{submitError}</span>
+          </div>
+        )}
+
+        {/* ── Main Form (hidden after submission) ── */}
+        {!isSubmitted && (<>
         {/* Top Floating Action Bar */}
         <div className="sticky top-4 z-40 bg-white/95 backdrop-blur-xs border border-slate-300 rounded shadow-sm px-4 py-2.5 mb-6 flex flex-wrap items-center justify-between gap-3 text-sm">
           <div className="flex items-center space-x-3">
@@ -619,6 +655,7 @@ export default function HospitalQuestionnairePage() {
           </div>
 
         </div>
+        </>)}
       </div>
     </SecurityGate>
   );

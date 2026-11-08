@@ -5,6 +5,9 @@ import { sql, ensureTablesCreated } from "@/lib/db/neon";
 import { memoryStore } from "@/lib/services/store";
 import { sendSubmissionNotification } from "@/lib/services/email";
 
+// Ensure DB tables are created once per cold-start, not on every request
+let tablesReady = false;
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -56,8 +59,9 @@ export async function POST(request: Request) {
     });
 
     // 2. Local Disk Backup (JSON and PDF file storage)
+    // On Vercel, process.cwd() is read-only; /tmp is writable on all platforms.
     try {
-      const backupDir = path.join(process.cwd(), "tmp", "submissions");
+      const backupDir = path.join("/tmp", "submissions");
       if (!fs.existsSync(backupDir)) {
         fs.mkdirSync(backupDir, { recursive: true });
       }
@@ -82,7 +86,10 @@ export async function POST(request: Request) {
 
     if (isNeonConfigured) {
       try {
-        await ensureTablesCreated();
+        if (!tablesReady) {
+          await ensureTablesCreated();
+          tablesReady = true;
+        }
 
         // 3a. Insert master submission record
         await sql`
@@ -222,7 +229,10 @@ export async function GET(request: Request) {
 
     if (isNeonConfigured) {
       try {
-        await ensureTablesCreated();
+        if (!tablesReady) {
+          await ensureTablesCreated();
+          tablesReady = true;
+        }
         let rows;
         if (caseCode) {
           rows = await sql`

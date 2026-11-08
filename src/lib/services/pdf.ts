@@ -147,7 +147,6 @@ export function generateA2000Pdf(params: PdfExportParams): { doc: jsPDF; filenam
 
   const safeFilename = params.clientName.replace(/[^a-zA-Z0-9_-]/g, "_");
   const filename = `${safeFilename}_${params.caseCode}.pdf`;
-  doc.save(filename);
 
   let base64 = "";
   try {
@@ -158,4 +157,9 @@ export function generateA2000Pdf(params: PdfExportParams): { doc: jsPDF; filenam
   }
 
   return { doc, filename, base64 };
+}
+
+/** Triggers a browser download for the PDF. Call only after server confirms success. */
+export function downloadPdf(doc: jsPDF, filename: string): void {
+  doc.save(filename);
 }
