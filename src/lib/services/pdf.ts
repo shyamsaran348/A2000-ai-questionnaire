@@ -10,7 +10,7 @@ interface PdfExportParams {
   sections: SectionDefinition[];
 }
 
-export function generateA2000Pdf(params: PdfExportParams): void {
+export function generateA2000Pdf(params: PdfExportParams): { doc: jsPDF; filename: string; base64: string } {
   const doc = new jsPDF({
     orientation: "portrait",
     unit: "mm",
@@ -146,5 +146,16 @@ export function generateA2000Pdf(params: PdfExportParams): void {
   });
 
   const safeFilename = params.clientName.replace(/[^a-zA-Z0-9_-]/g, "_");
-  doc.save(`${safeFilename}_${params.caseCode}.pdf`);
+  const filename = `${safeFilename}_${params.caseCode}.pdf`;
+  doc.save(filename);
+
+  let base64 = "";
+  try {
+    const dataUri = doc.output("datauristring");
+    base64 = dataUri.split(",")[1] || "";
+  } catch (err) {
+    console.warn("Could not encode PDF to base64:", err);
+  }
+
+  return { doc, filename, base64 };
 }

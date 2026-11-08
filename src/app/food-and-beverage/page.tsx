@@ -22,6 +22,7 @@ export default function FoodBeverageQuestionnairePage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const isInitialMount = useRef(true);
 
   // 1. Restore from localStorage on initial load
@@ -154,13 +155,15 @@ export default function FoodBeverageQuestionnairePage() {
 
   const handleDownload = async () => {
     if (!validateForm()) {
-      alert("Please fill in the required fields highlighted in red before downloading the PDF.");
+      alert("Please fill in the required fields highlighted in red before submitting.");
       return;
     }
 
+    setIsSubmitting(true);
     const companyName = (answers["fb_q1_company_name"]?.value as string) || "Food & Beverage Enterprise";
 
-    generateA2000Pdf({
+    // 1. Generate PDF deliverable & get base64
+    const pdfResult = generateA2000Pdf({
       caseCode: "A2000-FB",
       clientName: companyName,
       industry: "Food & Beverage",
@@ -168,8 +171,9 @@ export default function FoodBeverageQuestionnairePage() {
       sections: FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS,
     });
 
+    // 2. Persist in database & email PDF to ramyadevi@a2000india.com
     try {
-      await fetch("/api/questionnaire/submit", {
+      const res = await fetch("/api/questionnaire/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -180,11 +184,21 @@ export default function FoodBeverageQuestionnairePage() {
           phone: answers["fb_q1_phone"]?.value || "",
           contactPerson: answers["fb_q1_contact_person"]?.value || "",
           answers,
+          pdfBase64: pdfResult.base64,
+          filename: pdfResult.filename,
           submittedAt: new Date().toISOString(),
         }),
       });
+      const data = await res.json();
+      if (data.success) {
+        alert(
+          "Thank you! Your questionnaire has been submitted to A2000, stored in the database, and a copy has been sent to ramyadevi@a2000india.com. The PDF has also been saved to your device."
+        );
+      }
     } catch (e) {
-      console.warn("Server backup error:", e);
+      console.warn("Could not submit copy to server:", e);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -248,10 +262,11 @@ export default function FoodBeverageQuestionnairePage() {
             <button
               type="button"
               onClick={handleDownload}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] px-3.5 py-1.5 rounded transition shadow-sm"
+              disabled={isSubmitting}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] px-3.5 py-1.5 rounded transition shadow-sm disabled:opacity-50"
             >
               <Download className="w-3.5 h-3.5 text-[#C97835]" />
-              Download PDF
+              {isSubmitting ? "Submitting..." : "Submit & Download PDF"}
             </button>
           </div>
         </div>
@@ -580,16 +595,17 @@ export default function FoodBeverageQuestionnairePage() {
         {/* Bottom Actions Bar */}
         <div className="border-t border-slate-300 pt-6 flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-slate-500">
-            Click Download PDF to save your completed responses as a PDF file.
+            Click Submit & Download PDF to save your questionnaire to the database, email a copy to A2000, and download your copy.
           </p>
 
           <button
             type="button"
             onClick={handleDownload}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] px-4 py-2 rounded transition shadow-sm"
+            disabled={isSubmitting}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] px-4 py-2 rounded transition shadow-sm disabled:opacity-50"
           >
             <Download className="w-3.5 h-3.5 text-[#C97835]" />
-            Download PDF
+            {isSubmitting ? "Submitting..." : "Submit & Download PDF"}
           </button>
         </div>
 

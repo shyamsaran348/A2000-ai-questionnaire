@@ -82,11 +82,11 @@ Used by clients and consultants to assess business operations, current software 
   - Includes `Summary`, `Responses`, department breakdown, and audit timestamps.
 
 ### Backend Storage & Submissions
-- When a user clicks **Download PDF**, the page triggers a silent background `POST /api/questionnaire/submit`.
-- Submissions are persistently recorded in:
-  1. Local JSON files under `tmp/submissions/[caseCode]_[timestamp].json`.
-  2. Memory store (`src/lib/services/store.ts`).
-  3. PostgreSQL (Neon Serverless) when `DATABASE_URL` is configured.
+- When a user clicks **Submit & Download PDF**:
+  1. **PostgreSQL Database Storage**: Master record saved in `questionnaire_submissions` (with contact person, email, phone, JSONB answers, and submission timestamp) and individual answers upserted to `questionnaire_answers`.
+  2. **Automated PDF Email Dispatch**: The generated PDF report is attached and emailed directly to **`ramyadevi@a2000india.com`** via Resend (configured via `NOTIFICATION_EMAIL` and `RESEND_API_KEY`).
+  3. **Local Disk Backup**: JSON and generated `.pdf` file saved in `tmp/submissions/`.
+  4. **Browser Download**: The client receives and saves their own copy of the PDF.
 
 ---
 
@@ -118,6 +118,7 @@ Questionarre/
     │   │   └── index.ts                # Drizzle ORM instance
     │   └── services/                   # Business logic services
     │       ├── pdf.ts                  # Formatted A2000 Confidential PDF generator
+    │       ├── email.ts                # Email dispatch service (Resend integration with notification to ramyadevi@a2000india.com)
     │       ├── excel.ts                # Multi-worksheet Excel (.xlsx) generator
     │       └── store.ts                # In-memory store fallback for answers
     └── app/
