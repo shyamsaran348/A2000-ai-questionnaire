@@ -119,7 +119,7 @@ export default function FinanceQuestionnairePage() {
         if (q.key.includes("email") && val && typeof val === "string" && val.trim()) {
           const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
           if (!emailRegex.test(val.trim())) {
-            newErrors[q.key] = "Please enter a valid email address (e.g., name@company.com).";
+            newErrors[q.key] = "Please enter a valid official email address.";
             return;
           }
         }
@@ -305,13 +305,13 @@ export default function FinanceQuestionnairePage() {
               </h1>
             </div>
             <p className="text-xs text-slate-600 mt-1">
-              A2000 | AI Enablement • Confidential Assessment • Case: A2000-FN
+              A2000 | AI Enablement • Confidential Enterprise Discovery Assessment
             </p>
           </div>
 
           {/* Guidance Box */}
           <div className="p-3.5 bg-slate-50 border border-slate-200 rounded text-xs text-slate-600 leading-relaxed">
-            Your answers will help A2000 understand your business operations, technology, and challenges to identify opportunities for AI enablement. Approximate answers are fine. Autosave is active and your responses are saved automatically.
+            Your answers will help A2000 understand your business operations, technology, and challenges to identify opportunities for AI enablement. Approximate answers are fine.
           </div>
 
           {/* 12 Generalized Sections */}

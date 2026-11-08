@@ -13,7 +13,6 @@ import {
   ChefHat,
   ArrowRight,
   Clock,
-  FileText,
   Lock,
 } from "lucide-react";
 
@@ -91,14 +90,14 @@ function IndustryCard({
       </div>
 
       <div className="border-t border-slate-200 pt-3.5 flex items-center justify-between">
-        <span className="text-[11px] font-mono text-slate-500">
-          {caseCode}
+        <span className="text-[11px] font-medium text-slate-500">
+          Confidential Discovery
         </span>
         <Link
           href={href}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] group-hover:bg-[#0f2235] px-3 py-1.5 rounded transition"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] group-hover:bg-[#0f2235] px-3.5 py-1.5 rounded transition"
         >
-          <span>{hasDraft ? "Resume" : "Open Form"}</span>
+          <span>{hasDraft ? "Resume Assessment" : "Start Assessment"}</span>
           <ArrowRight className="w-3.5 h-3.5 text-[#C97835]" />
         </Link>
       </div>
@@ -236,25 +235,6 @@ export default function HomePage() {
             <p className="text-xs sm:text-sm text-slate-600 max-w-3xl leading-relaxed">
               Select your industry below. Your answers will help A2000 understand your business operations, technology, and challenges to identify opportunities for AI adoption and process improvement.
             </p>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-5 pt-5 border-t border-slate-100 text-xs text-slate-600">
-            <div className="bg-slate-50 p-2.5 rounded border border-slate-200 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-[#C97835]" />
-              <span>12 sections</span>
-            </div>
-            <div className="bg-slate-50 p-2.5 rounded border border-slate-200 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-[#C97835]" />
-              <span>Approx. 25–35 min</span>
-            </div>
-            <div className="bg-slate-50 p-2.5 rounded border border-slate-200 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span>Autosave active</span>
-            </div>
-            <div className="bg-slate-50 p-2.5 rounded border border-slate-200 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#17324D]"></span>
-              <span>Download PDF anytime</span>
-            </div>
           </div>
         </div>
 
