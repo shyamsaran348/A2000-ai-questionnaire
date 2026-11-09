@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import {
   Users,
   UserPlus,
@@ -19,12 +18,12 @@ import {
   ShieldCheck,
   Clock,
   CheckCircle2,
-  FileText,
   AlertCircle,
   RefreshCw,
   LogOut,
   ChevronRight,
-  Sparkles,
+  ArrowLeft,
+  Lock,
 } from "lucide-react";
 
 interface Customer {
@@ -50,32 +49,28 @@ const INDUSTRY_OPTIONS = [
     id: "hospital",
     name: "Hospital & Healthcare",
     icon: Building2,
-    color: "#2563eb",
-    bgColor: "bg-blue-50 text-blue-700 border-blue-200",
+    badge: "Healthcare",
     description: "Multi-specialty tertiary care, hospital networks, clinics",
   },
   {
     id: "finance",
     name: "Finance & FinTech",
     icon: Landmark,
-    color: "#059669",
-    bgColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    badge: "Financial Services",
     description: "NBFCs, digital lending, payments, wealth management",
   },
   {
     id: "food-and-beverage",
     name: "Food & Beverage",
     icon: UtensilsCrossed,
-    color: "#d97706",
-    bgColor: "bg-amber-50 text-amber-700 border-amber-200",
+    badge: "FMCG / Processing",
     description: "Packaged foods, FMCG manufacturing, beverage bottling",
   },
   {
     id: "jewellery",
     name: "Jewellery & Retail",
     icon: Gem,
-    color: "#9333ea",
-    bgColor: "bg-purple-50 text-purple-700 border-purple-200",
+    badge: "Retail & Manufacturing",
     description: "Precious metal manufacturing, wholesale & retail showrooms",
   },
 ];
@@ -86,8 +81,8 @@ export default function InternalDashboard() {
   const [passcode, setPasscode] = useState<string>("");
   const [authError, setAuthError] = useState<string>("");
 
-  // Tabs: 'manage' or 'create'
-  const [activeTab, setActiveTab] = useState<"manage" | "create">("manage");
+  // View: 'directory' or 'create'
+  const [currentView, setCurrentView] = useState<"directory" | "create">("directory");
 
   // Customers Data
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -110,7 +105,6 @@ export default function InternalDashboard() {
   const [createSuccess, setCreateSuccess] = useState<any | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
 
-  // Check session storage on mount
   useEffect(() => {
     const sessionAuth = sessionStorage.getItem("a2000_staff_auth");
     if (sessionAuth === "true") {
@@ -118,7 +112,6 @@ export default function InternalDashboard() {
     }
   }, []);
 
-  // Fetch customers when authenticated
   useEffect(() => {
     if (isAuthenticated) {
       loadCustomers();
@@ -147,7 +140,7 @@ export default function InternalDashboard() {
       sessionStorage.setItem("a2000_staff_auth", "true");
       setAuthError("");
     } else {
-      setAuthError("Invalid A2000 staff security credentials.");
+      setAuthError("Invalid access credentials. Please verify your passkey.");
     }
   };
 
@@ -186,14 +179,12 @@ export default function InternalDashboard() {
       }
 
       setCreateSuccess(data.customer);
-      // Reset form
       setFormCompany("");
       setFormWebsite("");
       setFormContactName("");
       setFormEmail("");
       setFormPhone("");
       setFormCustomCode("");
-      // Reload list in background
       loadCustomers();
     } catch (err: any) {
       setCreateError(err.message || "An error occurred");
@@ -218,7 +209,7 @@ export default function InternalDashboard() {
       });
       const data = await res.json();
       if (data.success) {
-        alert("Invitation email sent successfully to the client!");
+        alert("Invitation email sent successfully to the client.");
         loadCustomers();
       } else {
         alert(`Error: ${data.error}`);
@@ -230,7 +221,6 @@ export default function InternalDashboard() {
     }
   };
 
-  // Filter customers
   const filteredCustomers = customers.filter((c) => {
     const matchesSearch =
       c.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -249,63 +239,76 @@ export default function InternalDashboard() {
   // -------------------------------------------------------------
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-white flex flex-col justify-center py-16 px-4 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <div className="flex justify-center mb-4">
-            <Image
-              src="/a2000-logo.png"
-              alt="A2000"
-              width={160}
-              height={50}
-              className="h-11 w-auto brightness-0 invert"
-              priority
-            />
+          {/* Official Brand Logo */}
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <div className="w-12 h-12 bg-white rounded-lg border border-slate-200 p-1 flex items-center justify-center shadow-xs">
+              <Image
+                src="/a2000-logo.png"
+                alt="A2000"
+                width={40}
+                height={40}
+                className="object-contain"
+                priority
+              />
+            </div>
+            <div>
+              <div className="text-base font-bold tracking-tight text-[#17324D]">
+                A2000 | AI Enablement
+              </div>
+              <div className="text-xs text-slate-500">
+                Internal Assessment Hub
+              </div>
+            </div>
           </div>
-          <h2 className="text-center text-xl font-bold tracking-tight text-white">
-            A2000 | AI Enablement Staff Portal
-          </h2>
-          <p className="mt-1 text-center text-xs text-slate-400">
-            Internal Operations & Client Assessment Management
-          </p>
         </div>
 
-        <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-          <div className="bg-slate-800 py-8 px-6 shadow-xl sm:rounded-lg sm:px-10 border border-slate-700">
-            <form onSubmit={handleStaffLogin} className="space-y-5">
+        <div className="sm:mx-auto sm:w-full sm:max-w-sm">
+          <div className="bg-white py-8 px-6 border border-slate-200 rounded-lg shadow-sm">
+            <h2 className="text-sm font-semibold text-slate-900 mb-1">
+              Internal Access
+            </h2>
+            <p className="text-xs text-slate-500 mb-5">
+              Enter your authorized staff passkey to manage client assessments.
+            </p>
+
+            <form onSubmit={handleStaffLogin} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
-                  Staff Access Passkey
+                <label className="block text-xs font-medium text-slate-700 mb-1">
+                  Passkey
                 </label>
-                <div className="mt-2">
+                <div className="relative">
                   <input
                     type="password"
                     value={passcode}
                     onChange={(e) => setPasscode(e.target.value)}
-                    placeholder="Enter A2000 internal passkey"
-                    className="block w-full rounded border border-slate-600 bg-slate-900/80 px-3.5 py-2.5 text-white placeholder-slate-500 focus:border-[#C97835] focus:outline-none focus:ring-1 focus:ring-[#C97835] sm:text-sm"
+                    placeholder="Enter passkey"
+                    className="w-full rounded border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#C97835] focus:ring-1 focus:ring-[#C97835]"
                     autoFocus
                   />
+                  <Lock className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
 
               {authError && (
-                <div className="flex items-center gap-2 rounded bg-red-950/60 border border-red-800/80 p-2.5 text-xs text-red-300">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+                <div className="flex items-center gap-2 rounded bg-red-50 border border-red-200 p-2 text-xs text-red-700">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 text-red-500" />
                   <span>{authError}</span>
                 </div>
               )}
 
               <button
                 type="submit"
-                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded text-sm font-semibold text-white bg-[#C97835] hover:bg-[#b56728] transition shadow-md"
+                className="w-full flex justify-center py-2 px-4 rounded text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] transition"
               >
-                Access Internal Hub
+                Sign In
               </button>
             </form>
 
-            <div className="mt-6 pt-4 border-t border-slate-700/80 flex items-center justify-center gap-2 text-[11px] text-slate-400">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Authorized A2000 Consultants & Staff Only</span>
+            <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Authorized personnel only</span>
             </div>
           </div>
         </div>
@@ -319,64 +322,60 @@ export default function InternalDashboard() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       {/* Top Navigation */}
-      <header className="bg-[#17324D] border-b border-slate-800 text-white sticky top-0 z-50 shadow-sm">
+      <header className="bg-[#17324D] text-white border-b border-slate-800 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          
+          {/* Logo & Platform Name */}
           <div className="flex items-center space-x-3">
-            <Image
-              src="/a2000-logo.png"
-              alt="A2000"
-              width={130}
-              height={40}
-              className="h-8 w-auto brightness-0 invert"
-            />
-            <div className="h-6 w-px bg-slate-600" />
+            <div className="w-9 h-9 bg-white rounded p-0.5 flex items-center justify-center shrink-0">
+              <Image
+                src="/a2000-logo.png"
+                alt="A2000"
+                width={32}
+                height={32}
+                className="object-contain"
+                priority
+              />
+            </div>
             <div>
-              <span className="text-sm font-bold tracking-tight text-white block">
-                AI Enablement
-              </span>
-              <span className="text-[10px] text-slate-300 uppercase tracking-wider block">
+              <div className="text-sm font-bold tracking-tight text-white leading-tight">
+                A2000 | AI Enablement
+              </div>
+              <div className="text-[11px] text-slate-300 leading-none">
                 Client Assessment Hub
-              </span>
+              </div>
             </div>
           </div>
 
+          {/* Action / View Switch */}
           <div className="flex items-center space-x-3">
-            <button
-              onClick={() => {
-                setCreateSuccess(null);
-                setCreateError(null);
-                setActiveTab("manage");
-              }}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-semibold transition ${
-                activeTab === "manage"
-                  ? "bg-white text-[#17324D] shadow-sm"
-                  : "text-slate-200 hover:text-white hover:bg-slate-700/60"
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              <span>Manage Customers</span>
-              <span className="ml-1 text-[10px] bg-slate-200/20 px-1.5 py-0.5 rounded-full">
-                {customers.length}
-              </span>
-            </button>
+            {currentView === "directory" ? (
+              <button
+                onClick={() => {
+                  setCreateSuccess(null);
+                  setCreateError(null);
+                  setCurrentView("create");
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-semibold text-white bg-[#C97835] hover:bg-[#b56728] transition shadow-xs"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>Create Customer</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  setCreateSuccess(null);
+                  setCreateError(null);
+                  setCurrentView("directory");
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-semibold text-slate-200 hover:text-white bg-slate-800 hover:bg-slate-700 transition border border-slate-700"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Back to Directory</span>
+              </button>
+            )}
 
-            <button
-              onClick={() => {
-                setCreateSuccess(null);
-                setCreateError(null);
-                setActiveTab("create");
-              }}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-semibold transition ${
-                activeTab === "create"
-                  ? "bg-[#C97835] text-white shadow-sm"
-                  : "bg-slate-700/60 text-slate-200 hover:text-white hover:bg-slate-700"
-              }`}
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>Create Customer</span>
-            </button>
-
-            <div className="h-5 w-px bg-slate-600 hidden sm:block" />
+            <div className="h-4 w-px bg-slate-700" />
 
             <button
               onClick={handleLogout}
@@ -392,116 +391,108 @@ export default function InternalDashboard() {
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* ========================================================= */}
-        {/* TAB 1: CREATE CUSTOMER                                    */}
+        {/* VIEW 1: CREATE CUSTOMER                                   */}
         {/* ========================================================= */}
-        {activeTab === "create" && (
-          <div className="max-w-3xl mx-auto">
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-slate-900">Create Client Assessment</h1>
-              <p className="text-sm text-slate-600 mt-1">
-                Provision a dedicated discovery questionnaire for a client enterprise. A unique secure URL and passcode will be generated automatically.
-              </p>
+        {currentView === "create" && (
+          <div className="max-w-2xl mx-auto">
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h1 className="text-lg font-bold text-slate-900">Create Customer Assessment</h1>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Provision a dedicated questionnaire link and secure access passcode for a client.
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  setCreateSuccess(null);
+                  setCreateError(null);
+                  setCurrentView("directory");
+                }}
+                className="text-xs text-slate-500 hover:text-slate-800 font-medium flex items-center gap-1"
+              >
+                <ArrowLeft className="w-3 h-3" />
+                <span>Directory</span>
+              </button>
             </div>
 
+            {/* Success Box - Shows only immediately after creating */}
             {createSuccess && (
-              <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-lg p-5">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2 text-emerald-800 font-bold text-base">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                    <span>Customer Portal Created Successfully!</span>
-                  </div>
-                  <button
-                    onClick={() => setCreateSuccess(null)}
-                    className="text-xs text-emerald-700 hover:text-emerald-900 underline"
-                  >
-                    Dismiss
-                  </button>
+              <div className="mb-6 bg-white border border-emerald-300 rounded-lg p-5 shadow-xs">
+                <div className="flex items-center gap-2 text-emerald-800 font-semibold text-sm mb-3">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span>Client Assessment Portal Ready</span>
                 </div>
 
-                <div className="mt-4 bg-white rounded border border-emerald-200 p-4 space-y-3">
-                  <div className="flex justify-between items-center text-sm border-b border-slate-100 pb-2">
-                    <span className="text-slate-500 font-medium">Company Name:</span>
+                <div className="bg-slate-50 rounded border border-slate-200 p-3.5 space-y-2.5 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Company:</span>
                     <span className="font-semibold text-slate-900">{createSuccess.companyName}</span>
                   </div>
-                  <div className="flex justify-between items-center text-sm border-b border-slate-100 pb-2">
-                    <span className="text-slate-500 font-medium">Industry:</span>
-                    <span className="font-semibold uppercase text-slate-700">{createSuccess.industry}</span>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Industry:</span>
+                    <span className="font-medium text-slate-700 capitalize">{createSuccess.industry}</span>
                   </div>
-                  <div className="flex justify-between items-center text-sm border-b border-slate-100 pb-2">
-                    <span className="text-slate-500 font-medium">Assigned Passcode:</span>
-                    <span className="font-mono font-bold text-lg text-[#C97835] bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500">Access Passcode:</span>
+                    <span className="font-mono font-bold text-[#C97835] bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                       {createSuccess.accessCode}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500 font-medium">Unique Portal URL:</span>
-                    <div className="flex items-center gap-2">
-                      <a
-                        href={createSuccess.portalUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-blue-600 hover:underline max-w-[260px] truncate"
-                      >
+                  <div className="flex justify-between items-center pt-1 border-t border-slate-200">
+                    <span className="text-slate-500">Portal URL:</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono text-slate-700 text-[11px] truncate max-w-[200px]">
                         {createSuccess.portalUrl}
-                      </a>
+                      </span>
                       <button
                         onClick={() => copyToClipboard(createSuccess.portalUrl, "new-url")}
-                        className="inline-flex items-center gap-1 text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded transition border border-slate-300"
+                        className="text-[11px] font-medium bg-white hover:bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-300"
                       >
-                        {copiedId === "new-url" ? (
-                          <>
-                            <Check className="w-3 h-3 text-emerald-600" />
-                            <span>Copied</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3 h-3" />
-                            <span>Copy</span>
-                          </>
-                        )}
+                        {copiedId === "new-url" ? "Copied" : "Copy"}
                       </button>
                     </div>
                   </div>
                 </div>
 
-                {createSuccess.emailSent ? (
-                  <p className="mt-3 text-xs text-emerald-700 flex items-center gap-1.5 font-medium">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    Invitation email with access link and passcode has been dispatched to {createSuccess.email}.
-                  </p>
-                ) : (
-                  <p className="mt-3 text-xs text-slate-500">
-                    No email was automatically sent. You can share the link and passcode directly with the client.
+                {createSuccess.emailSent && (
+                  <p className="mt-2.5 text-[11px] text-emerald-700 flex items-center gap-1">
+                    <Check className="w-3.5 h-3.5" />
+                    Invitation email with access link sent to {createSuccess.email}.
                   </p>
                 )}
 
-                <div className="mt-4 flex gap-3">
+                <div className="mt-4">
                   <button
-                    onClick={() => setActiveTab("manage")}
-                    className="text-xs font-semibold bg-[#17324D] hover:bg-[#0f2235] text-white px-3.5 py-2 rounded transition shadow-sm"
+                    onClick={() => {
+                      setCreateSuccess(null);
+                      setCurrentView("directory");
+                    }}
+                    className="text-xs font-medium text-[#17324D] hover:underline"
                   >
-                    View in Customer Dashboard &rarr;
+                    &larr; View in Directory
                   </button>
                 </div>
               </div>
             )}
 
             {createError && (
-              <div className="mb-6 bg-red-50 border border-red-200 rounded p-4 text-xs text-red-800 flex items-center gap-2">
+              <div className="mb-5 bg-red-50 border border-red-200 rounded p-3 text-xs text-red-700 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
                 <span>{createError}</span>
               </div>
             )}
 
-            {/* Create Form Card */}
-            <div className="bg-white border border-slate-300 rounded-lg shadow-sm p-6 sm:p-8">
-              <form onSubmit={handleCreateCustomer} className="space-y-6">
+            {/* Create Customer Form */}
+            <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-xs">
+              <form onSubmit={handleCreateCustomer} className="space-y-5">
+                
                 {/* 1. Industry Selection */}
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                    1. Select Industry Questionnaire *
+                  <label className="block text-xs font-semibold text-slate-800 mb-2">
+                    Industry Questionnaire *
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     {INDUSTRY_OPTIONS.map((ind) => {
                       const Icon = ind.icon;
                       const isSelected = formIndustry === ind.id;
@@ -509,22 +500,16 @@ export default function InternalDashboard() {
                         <div
                           key={ind.id}
                           onClick={() => setFormIndustry(ind.id)}
-                          className={`cursor-pointer rounded-lg border p-4 transition flex items-start gap-3 ${
+                          className={`cursor-pointer rounded border p-3 transition flex items-start gap-2.5 ${
                             isSelected
-                              ? "border-[#17324D] bg-slate-50 ring-2 ring-[#17324D]/10"
+                              ? "border-[#17324D] bg-slate-50 ring-1 ring-[#17324D]"
                               : "border-slate-200 hover:border-slate-300 bg-white"
                           }`}
                         >
-                          <div
-                            className={`p-2 rounded ${
-                              isSelected ? "bg-[#17324D] text-white" : "bg-slate-100 text-slate-600"
-                            }`}
-                          >
-                            <Icon className="w-5 h-5" />
-                          </div>
+                          <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${isSelected ? "text-[#C97835]" : "text-slate-400"}`} />
                           <div>
-                            <div className="text-sm font-semibold text-slate-900">{ind.name}</div>
-                            <div className="text-xs text-slate-500 mt-0.5">{ind.description}</div>
+                            <div className="text-xs font-semibold text-slate-900">{ind.name}</div>
+                            <div className="text-[11px] text-slate-500 mt-0.5 leading-tight">{ind.description}</div>
                           </div>
                         </div>
                       );
@@ -532,140 +517,135 @@ export default function InternalDashboard() {
                   </div>
                 </div>
 
-                {/* 2. Company Info */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* 2. Company Details */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Company / Organization Name *
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Company Name *
                     </label>
                     <input
                       type="text"
                       required
                       value={formCompany}
                       onChange={(e) => setFormCompany(e.target.value)}
-                      placeholder="e.g., Apollo Health City / Apex Finance"
-                      className="w-full text-sm border border-slate-300 rounded px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#C97835]"
+                      placeholder="e.g. Apollo Healthcare / Aachi Masala"
+                      className="w-full text-xs border border-slate-300 rounded px-2.5 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#C97835]"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Company Website (Optional)
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Website (Optional)
                     </label>
                     <input
                       type="text"
                       value={formWebsite}
                       onChange={(e) => setFormWebsite(e.target.value)}
-                      placeholder="e.g., https://example.com"
-                      className="w-full text-sm border border-slate-300 rounded px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#C97835]"
+                      placeholder="https://example.com"
+                      className="w-full text-xs border border-slate-300 rounded px-2.5 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#C97835]"
                     />
                   </div>
                 </div>
 
-                {/* 3. Contact Person Info */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* 3. Contact Details */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Contact Person & Designation *
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Contact Person *
                     </label>
                     <input
                       type="text"
                       required
                       value={formContactName}
                       onChange={(e) => setFormContactName(e.target.value)}
-                      placeholder="e.g., Rajesh Sharma, COO"
-                      className="w-full text-sm border border-slate-300 rounded px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#C97835]"
+                      placeholder="Full Name & Role"
+                      className="w-full text-xs border border-slate-300 rounded px-2.5 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#C97835]"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Official Email Address *
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Official Email *
                     </label>
                     <input
                       type="email"
                       required
                       value={formEmail}
                       onChange={(e) => setFormEmail(e.target.value)}
-                      placeholder="client.executive@company.com"
-                      className="w-full text-sm border border-slate-300 rounded px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#C97835]"
+                      placeholder="client@company.com"
+                      className="w-full text-xs border border-slate-300 rounded px-2.5 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#C97835]"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Phone Number (Optional)
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Phone Number
                     </label>
                     <input
                       type="text"
                       value={formPhone}
                       onChange={(e) => setFormPhone(e.target.value)}
-                      placeholder="+91 98765 43210"
-                      className="w-full text-sm border border-slate-300 rounded px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#C97835]"
+                      placeholder="+91..."
+                      className="w-full text-xs border border-slate-300 rounded px-2.5 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#C97835]"
                     />
                   </div>
                 </div>
 
-                {/* 4. Security Passcode & Dispatch Settings */}
-                <div className="pt-4 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                {/* 4. Passcode & Options */}
+                <div className="pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-center">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Custom Security Passcode (Optional)
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Custom Passcode (Optional)
                     </label>
                     <input
                       type="text"
                       value={formCustomCode}
                       onChange={(e) => setFormCustomCode(e.target.value)}
-                      placeholder="Leave blank to auto-generate (e.g. A2K-7842)"
-                      className="w-full text-sm border border-slate-300 rounded px-3 py-2 text-slate-900 placeholder-slate-400 font-mono focus:outline-none focus:border-[#C97835]"
+                      placeholder="Leave blank to auto-generate"
+                      className="w-full text-xs border border-slate-300 rounded px-2.5 py-2 text-slate-900 placeholder-slate-400 font-mono focus:outline-none focus:border-[#C97835]"
                     />
-                    <p className="text-[11px] text-slate-500 mt-1">
-                      If left blank, a random 4-digit security code is generated.
-                    </p>
                   </div>
 
-                  <div className="pt-2">
-                    <label className="flex items-center gap-2.5 cursor-pointer">
+                  <div className="pt-1">
+                    <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={formSendEmail}
                         onChange={(e) => setFormSendEmail(e.target.checked)}
-                        className="rounded border-slate-300 text-[#C97835] focus:ring-[#C97835] w-4 h-4"
+                        className="rounded border-slate-300 text-[#C97835] focus:ring-[#C97835]"
                       />
-                      <span className="text-xs font-semibold text-slate-800">
-                        Automatically dispatch invitation email with portal link to client
+                      <span className="text-xs font-medium text-slate-800">
+                        Email invitation link & passcode to client
                       </span>
                     </label>
-                    <p className="text-[11px] text-slate-500 ml-6.5 mt-0.5">
-                      Sends via A2000's direct Gmail relay to the client, CC'ing ramyadevi@a2000india.com.
-                    </p>
                   </div>
                 </div>
 
-                {/* Submit Action */}
-                <div className="pt-4 border-t border-slate-200 flex justify-end gap-3">
+                {/* Submit Button */}
+                <div className="pt-3 border-t border-slate-100 flex justify-end gap-2.5">
                   <button
                     type="button"
-                    onClick={() => setActiveTab("manage")}
-                    className="text-xs font-semibold text-slate-600 hover:text-slate-800 px-4 py-2"
+                    onClick={() => {
+                      setCreateSuccess(null);
+                      setCreateError(null);
+                      setCurrentView("directory");
+                    }}
+                    className="text-xs text-slate-600 hover:text-slate-800 px-3 py-1.5"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="inline-flex items-center gap-2 text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] px-5 py-2.5 rounded transition shadow-sm disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] px-4 py-2 rounded transition shadow-xs disabled:opacity-50"
                   >
                     {isSubmitting ? (
                       <>
                         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>Generating Portal...</span>
+                        <span>Generating...</span>
                       </>
                     ) : (
-                      <>
-                        <Sparkles className="w-3.5 h-3.5 text-[#C97835]" />
-                        <span>Generate Client Link & Access Code</span>
-                      </>
+                      <span>Generate Customer Link</span>
                     )}
                   </button>
                 </div>
@@ -675,64 +655,64 @@ export default function InternalDashboard() {
         )}
 
         {/* ========================================================= */}
-        {/* TAB 2: MANAGE CUSTOMERS (DASHBOARD)                       */}
+        {/* VIEW 2: MANAGE CUSTOMERS (DIRECTORY)                      */}
         {/* ========================================================= */}
-        {activeTab === "manage" && (
-          <div className="space-y-6">
-            {/* Header & Controls */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {currentView === "directory" && (
+          <div className="space-y-4">
+            {/* Top Toolbar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h1 className="text-2xl font-bold text-slate-900">Client Assessment Directory</h1>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Monitor completion status, copy client access links, view security passcodes, and track submissions.
+                <h1 className="text-lg font-bold text-slate-900">Client Directory</h1>
+                <p className="text-xs text-slate-500">
+                  {customers.length} total customer assessment portals provisioned
                 </p>
               </div>
 
               <div className="flex items-center gap-2">
                 <button
                   onClick={loadCustomers}
-                  className="inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 bg-white border border-slate-300 px-3 py-1.5 rounded transition shadow-2xs"
+                  className="inline-flex items-center gap-1 text-xs text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-2.5 py-1.5 rounded transition shadow-xs"
                   title="Refresh list"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
                   <span>Refresh</span>
                 </button>
+
                 <button
                   onClick={() => {
                     setCreateSuccess(null);
                     setCreateError(null);
-                    setActiveTab("create");
+                    setCurrentView("create");
                   }}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#C97835] hover:bg-[#b56728] px-3.5 py-1.5 rounded transition shadow-2xs"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#C97835] hover:bg-[#b56728] px-3.5 py-1.5 rounded transition shadow-xs"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
-                  <span>New Customer</span>
+                  <span>Create Customer</span>
                 </button>
               </div>
             </div>
 
-            {/* Search & Filters */}
-            <div className="bg-white border border-slate-200 rounded-lg p-3 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
-              <div className="flex-1 min-w-[240px] relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            {/* Filter & Search Bar */}
+            <div className="bg-white border border-slate-200 rounded-lg p-2.5 flex flex-wrap items-center justify-between gap-2.5 shadow-2xs">
+              <div className="flex-1 min-w-[200px] relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by company, contact person, email, or passcode..."
-                  className="w-full text-xs pl-9 pr-3 py-2 border border-slate-200 rounded focus:outline-none focus:border-[#17324D]"
+                  placeholder="Search by company, contact, or code..."
+                  className="w-full text-xs pl-8 pr-2.5 py-1.5 border border-slate-200 rounded focus:outline-none focus:border-[#17324D]"
                 />
               </div>
 
-              <div className="flex items-center gap-2 text-xs">
-                <Filter className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-slate-500 font-medium">Industry:</span>
+              <div className="flex items-center gap-1.5 text-xs">
+                <Filter className="w-3 h-3 text-slate-400" />
                 <select
                   value={selectedIndustryFilter}
                   onChange={(e) => setSelectedIndustryFilter(e.target.value)}
-                  className="text-xs border border-slate-200 rounded px-2.5 py-1.5 bg-white text-slate-700 focus:outline-none"
+                  className="text-xs border border-slate-200 rounded px-2 py-1 bg-white text-slate-700 focus:outline-none"
                 >
-                  <option value="all">All Industries ({customers.length})</option>
+                  <option value="all">All Industries</option>
                   <option value="hospital">Hospital & Healthcare</option>
                   <option value="finance">Finance & FinTech</option>
                   <option value="food-and-beverage">Food & Beverage</option>
@@ -741,57 +721,35 @@ export default function InternalDashboard() {
               </div>
             </div>
 
-            {/* Customers Table / Cards */}
+            {/* Table */}
             {filteredCustomers.length === 0 ? (
-              <div className="bg-white border border-slate-200 rounded-lg p-12 text-center">
-                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
-                  <Users className="w-6 h-6 text-slate-400" />
-                </div>
-                <h3 className="text-sm font-bold text-slate-800">No Customers Found</h3>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
-                  {searchQuery
-                    ? "No customer records match your search criteria. Try a different query."
-                    : "You haven't provisioned any client assessment portals yet."}
-                </p>
+              <div className="bg-white border border-slate-200 rounded-lg p-10 text-center">
+                <Users className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                <p className="text-xs font-medium text-slate-700">No customers found</p>
                 <button
                   onClick={() => {
                     setCreateSuccess(null);
                     setCreateError(null);
-                    setActiveTab("create");
+                    setCurrentView("create");
                   }}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] px-4 py-2 rounded transition shadow-sm"
+                  className="mt-3 text-xs font-semibold text-[#17324D] hover:underline"
                 >
-                  <UserPlus className="w-3.5 h-3.5 text-[#C97835]" />
-                  <span>Create First Customer</span>
+                  Create your first customer &rarr;
                 </button>
               </div>
             ) : (
               <div className="bg-white border border-slate-200 rounded-lg shadow-2xs overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
-                    <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider font-semibold">
+                    <thead className="bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
                       <tr>
-                        <th scope="col" className="px-5 py-3.5">
-                          Company / Client
-                        </th>
-                        <th scope="col" className="px-4 py-3.5">
-                          Industry
-                        </th>
-                        <th scope="col" className="px-4 py-3.5">
-                          Assigned Passcode
-                        </th>
-                        <th scope="col" className="px-4 py-3.5">
-                          Dedicated Link
-                        </th>
-                        <th scope="col" className="px-4 py-3.5">
-                          Status
-                        </th>
-                        <th scope="col" className="px-4 py-3.5">
-                          Activity
-                        </th>
-                        <th scope="col" className="px-4 py-3.5 text-right">
-                          Actions
-                        </th>
+                        <th className="px-4 py-3">Client</th>
+                        <th className="px-4 py-3">Industry</th>
+                        <th className="px-4 py-3">Passcode</th>
+                        <th className="px-4 py-3">Portal Link</th>
+                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3">Activity</th>
+                        <th className="px-4 py-3 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -800,102 +758,84 @@ export default function InternalDashboard() {
                           ? `${window.location.origin}/portal/${c.id}`
                           : `/portal/${c.id}`;
 
-                        const indConfig = INDUSTRY_OPTIONS.find((i) => i.id === c.industry);
+                        const ind = INDUSTRY_OPTIONS.find((i) => i.id === c.industry);
 
                         return (
-                          <tr key={c.id} className="hover:bg-slate-50/80 transition">
-                            {/* Company Info */}
-                            <td className="px-5 py-4">
-                              <div className="font-semibold text-slate-900 text-sm">
-                                {c.company_name}
-                              </div>
-                              <div className="text-[11px] text-slate-500 mt-0.5">
-                                {c.contact_name} &bull; {c.email}
-                              </div>
-                              {c.phone && (
-                                <div className="text-[10px] text-slate-400">{c.phone}</div>
-                              )}
+                          <tr key={c.id} className="hover:bg-slate-50/60 transition">
+                            {/* Client */}
+                            <td className="px-4 py-3">
+                              <div className="font-semibold text-slate-900">{c.company_name}</div>
+                              <div className="text-[11px] text-slate-500">{c.contact_name} &bull; {c.email}</div>
                             </td>
 
-                            {/* Industry Badge */}
-                            <td className="px-4 py-4">
-                              <span
-                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium border ${
-                                  indConfig?.bgColor || "bg-slate-100 text-slate-700 border-slate-200"
-                                }`}
-                              >
-                                {indConfig && <indConfig.icon className="w-3 h-3" />}
-                                {indConfig?.name || c.industry}
+                            {/* Industry */}
+                            <td className="px-4 py-3">
+                              <span className="inline-block text-[11px] text-slate-700 font-medium">
+                                {ind?.badge || c.industry}
                               </span>
                             </td>
 
-                            {/* Access Passcode */}
-                            <td className="px-4 py-4">
+                            {/* Passcode */}
+                            <td className="px-4 py-3">
                               <div className="flex items-center gap-1.5">
-                                <span className="font-mono font-bold text-xs bg-amber-50 text-[#C97835] border border-amber-200 px-2 py-0.5 rounded">
+                                <span className="font-mono font-bold text-xs bg-amber-50 text-[#C97835] border border-amber-200 px-1.5 py-0.5 rounded">
                                   {c.access_code}
                                 </span>
                                 <button
                                   onClick={() => copyToClipboard(c.access_code, `code-${c.id}`)}
-                                  className="text-slate-400 hover:text-slate-700 p-1 rounded"
-                                  title="Copy Passcode"
+                                  className="text-slate-400 hover:text-slate-600 p-0.5"
+                                  title="Copy code"
                                 >
                                   {copiedId === `code-${c.id}` ? (
-                                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                    <Check className="w-3 h-3 text-emerald-600" />
                                   ) : (
-                                    <Copy className="w-3.5 h-3.5" />
+                                    <Copy className="w-3 h-3" />
                                   )}
                                 </button>
                               </div>
                             </td>
 
-                            {/* Client Dedicated Link */}
-                            <td className="px-4 py-4">
+                            {/* Portal Link */}
+                            <td className="px-4 py-3">
                               <div className="flex items-center gap-1.5">
-                                <a
-                                  href={portalUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-blue-600 hover:text-blue-800 font-mono text-[11px] hover:underline flex items-center gap-1"
-                                >
-                                  <span>/portal/{c.id.substring(0, 12)}...</span>
-                                  <ExternalLink className="w-3 h-3" />
-                                </a>
+                                <span className="font-mono text-[11px] text-slate-600 max-w-[140px] truncate">
+                                  /portal/{c.id}
+                                </span>
                                 <button
                                   onClick={() => copyToClipboard(portalUrl, `url-${c.id}`)}
-                                  className="text-slate-400 hover:text-slate-700 p-1 rounded hover:bg-slate-100"
-                                  title="Copy Full Portal Link"
+                                  className="text-slate-400 hover:text-slate-600 p-0.5"
+                                  title="Copy link"
                                 >
                                   {copiedId === `url-${c.id}` ? (
-                                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                    <Check className="w-3 h-3 text-emerald-600" />
                                   ) : (
-                                    <Copy className="w-3.5 h-3.5" />
+                                    <Copy className="w-3 h-3" />
                                   )}
                                 </button>
                               </div>
                             </td>
 
                             {/* Status */}
-                            <td className="px-4 py-4">
+                            <td className="px-4 py-3">
                               {c.status === "submitted" ? (
-                                <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded text-[11px] font-semibold">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
                                   <CheckCircle2 className="w-3 h-3" />
                                   Submitted
                                 </span>
                               ) : c.status === "in_progress" ? (
-                                <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded text-[11px] font-semibold">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
                                   <Clock className="w-3 h-3" />
                                   In Progress
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded text-[11px]">
+                                <span className="text-[11px] text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">
                                   Created
                                 </span>
                               )}
                             </td>
 
                             {/* Activity */}
-                            <td className="px-4 py-4 text-[11px] text-slate-500">
+                            <td className="px-4 py-3 text-[11px] text-slate-500">
                               {c.status === "submitted" && c.submitted_at ? (
                                 <div>Submitted: {new Date(c.submitted_at).toLocaleDateString()}</div>
                               ) : c.last_active_at ? (
@@ -903,29 +843,25 @@ export default function InternalDashboard() {
                               ) : (
                                 <div>Created: {new Date(c.created_at).toLocaleDateString()}</div>
                               )}
-                              <div className="text-[10px] text-slate-400">
-                                {c.answered_questions_count || 0} fields answered
-                              </div>
                             </td>
 
-                            {/* Action Buttons */}
-                            <td className="px-4 py-4 text-right">
+                            {/* Actions */}
+                            <td className="px-4 py-3 text-right">
                               <div className="flex items-center justify-end gap-1.5">
                                 <button
                                   onClick={() => handleResendInvite(c.id)}
                                   disabled={resendingId === c.id}
-                                  className="inline-flex items-center gap-1 text-[11px] text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 px-2 py-1 rounded transition"
-                                  title="Resend invitation email with passcode to client"
+                                  className="text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-2 py-1 rounded transition"
+                                  title="Resend email invitation"
                                 >
-                                  <Send className={`w-3 h-3 ${resendingId === c.id ? "animate-pulse" : ""}`} />
-                                  <span>{c.invitation_sent ? "Resend Invite" : "Send Invite"}</span>
+                                  {resendingId === c.id ? "Sending..." : "Send Invite"}
                                 </button>
 
                                 <a
                                   href={portalUrl}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="inline-flex items-center gap-1 text-[11px] text-[#17324D] hover:text-white bg-slate-100 hover:bg-[#17324D] border border-slate-300 px-2 py-1 rounded transition"
+                                  className="text-[11px] font-medium text-[#17324D] hover:text-white bg-slate-100 hover:bg-[#17324D] border border-slate-200 px-2 py-1 rounded transition flex items-center gap-0.5"
                                 >
                                   <span>Open</span>
                                   <ChevronRight className="w-3 h-3" />

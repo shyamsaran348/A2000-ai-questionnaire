@@ -47,7 +47,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="bg-slate-100/70 text-slate-900 font-sans antialiased min-h-screen py-8 px-3 sm:px-6">
+      <body className="bg-slate-50 text-slate-900 font-sans antialiased min-h-screen">
         {children}
       </body>
     </html>
