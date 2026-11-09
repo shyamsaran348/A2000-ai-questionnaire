@@ -342,7 +342,11 @@ export default function InternalDashboard() {
 
           <div className="flex items-center space-x-3">
             <button
-              onClick={() => setActiveTab("manage")}
+              onClick={() => {
+                setCreateSuccess(null);
+                setCreateError(null);
+                setActiveTab("manage");
+              }}
               className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-semibold transition ${
                 activeTab === "manage"
                   ? "bg-white text-[#17324D] shadow-sm"
@@ -357,7 +361,11 @@ export default function InternalDashboard() {
             </button>
 
             <button
-              onClick={() => setActiveTab("create")}
+              onClick={() => {
+                setCreateSuccess(null);
+                setCreateError(null);
+                setActiveTab("create");
+              }}
               className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-semibold transition ${
                 activeTab === "create"
                   ? "bg-[#C97835] text-white shadow-sm"
@@ -690,7 +698,11 @@ export default function InternalDashboard() {
                   <span>Refresh</span>
                 </button>
                 <button
-                  onClick={() => setActiveTab("create")}
+                  onClick={() => {
+                    setCreateSuccess(null);
+                    setCreateError(null);
+                    setActiveTab("create");
+                  }}
                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#C97835] hover:bg-[#b56728] px-3.5 py-1.5 rounded transition shadow-2xs"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
@@ -742,7 +754,11 @@ export default function InternalDashboard() {
                     : "You haven't provisioned any client assessment portals yet."}
                 </p>
                 <button
-                  onClick={() => setActiveTab("create")}
+                  onClick={() => {
+                    setCreateSuccess(null);
+                    setCreateError(null);
+                    setActiveTab("create");
+                  }}
                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] px-4 py-2 rounded transition shadow-sm"
                 >
                   <UserPlus className="w-3.5 h-3.5 text-[#C97835]" />
