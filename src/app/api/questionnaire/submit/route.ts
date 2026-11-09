@@ -170,6 +170,19 @@ export async function POST(request: Request) {
           }
         }
 
+        // 3d. Update customer record if this submission belongs to a managed customer
+        const customerId = body.customerId;
+        if (customerId) {
+          await sql`
+            UPDATE customers
+            SET status = 'submitted',
+                answers = ${JSON.stringify(answers)}::jsonb,
+                submitted_at = NOW(),
+                last_active_at = NOW()
+            WHERE id = ${customerId};
+          `;
+        }
+
         storedInDb = true;
       } catch (dbErr: any) {
         console.error("PostgreSQL database save error:", dbErr.message);

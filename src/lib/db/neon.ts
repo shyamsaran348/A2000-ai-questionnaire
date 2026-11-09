@@ -47,6 +47,27 @@ export async function ensureTablesCreated() {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
     `;
+
+    // 4. Customers Table (Multi-tenant Client Management)
+    await sql`
+      CREATE TABLE IF NOT EXISTS customers (
+        id TEXT PRIMARY KEY,
+        company_name TEXT NOT NULL,
+        website TEXT,
+        industry TEXT NOT NULL,
+        contact_name TEXT NOT NULL,
+        email TEXT NOT NULL,
+        phone TEXT,
+        access_code TEXT NOT NULL,
+        status TEXT DEFAULT 'created',
+        answers JSONB DEFAULT '{}'::jsonb,
+        invitation_sent BOOLEAN DEFAULT false,
+        invitation_sent_at TIMESTAMPTZ,
+        last_active_at TIMESTAMPTZ DEFAULT NOW(),
+        submitted_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `;
   } catch (err: any) {
     console.error("Failed to initialize database tables:", err.message);
   }

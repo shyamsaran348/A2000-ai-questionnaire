@@ -16,3 +16,4 @@ frontend:
     paths:
       - .next/cache/**/*
       - .npm/**/*
+
