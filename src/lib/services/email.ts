@@ -1,3 +1,4 @@
+import nodemailer from "nodemailer";
 import { Resend } from "resend";
 
 const DEFAULT_TARGET_EMAIL = "ramyadevi@a2000india.com";
@@ -15,10 +16,7 @@ interface SendSubmissionEmailParams {
 }
 
 export async function sendSubmissionNotification(params: SendSubmissionEmailParams) {
-  const apiKey = process.env.RESEND_API_KEY;
   const recipient = process.env.NOTIFICATION_EMAIL || DEFAULT_TARGET_EMAIL;
-  const fromEmail = process.env.EMAIL_FROM || "A2000 AI Enablement <onboarding@resend.dev>";
-
   const clientName = params.clientName || "Valued Enterprise Client";
   const contactPerson = params.contactPerson || "Not specified";
   const email = params.email || "Not specified";
@@ -86,51 +84,89 @@ export async function sendSubmissionNotification(params: SendSubmissionEmailPara
     </html>
   `;
 
-  // Prepare attachment if base64 provided
-  const attachments = [];
-  if (params.pdfBase64) {
-    const filename = params.filename || `${clientName.replace(/[^a-zA-Z0-9_-]/g, "_")}_${params.caseCode}.pdf`;
-    attachments.push({
-      filename,
-      content: params.pdfBase64,
-    });
+  const filename = params.filename || `${clientName.replace(/[^a-zA-Z0-9_-]/g, "_")}_${params.caseCode}.pdf`;
+
+  // 1. Primary Priority: Gmail SMTP (Direct Google servers, guaranteed delivery to Ramya)
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailPass = process.env.GMAIL_APP_PASSWORD;
+
+  if (gmailUser && gmailPass) {
+    try {
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: gmailUser,
+          pass: gmailPass,
+        },
+      });
+
+      const mailOptions: any = {
+        from: `"Shyam Saran (A2000 AI Enablement)" <${gmailUser}>`,
+        to: recipient,
+        subject,
+        html: htmlBody,
+      };
+
+      if (params.pdfBase64) {
+        mailOptions.attachments = [
+          {
+            filename,
+            content: Buffer.from(params.pdfBase64, "base64"),
+          },
+        ];
+      }
+
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`[Email Service - Gmail] Successfully sent PDF to ${recipient}. MessageId:`, info.messageId);
+      return {
+        success: true,
+        provider: "gmail",
+        recipient,
+        messageId: info.messageId,
+      };
+    } catch (gmailErr: any) {
+      console.error("[Email Service - Gmail] Failed to send via Gmail SMTP:", gmailErr.message);
+    }
   }
 
-  if (!apiKey) {
-    console.warn(
-      `[Email Service] RESEND_API_KEY is not set. Simulated sending submission email to: ${recipient}. Subject: "${subject}"`
-    );
-    return {
-      success: false,
-      simulated: true,
-      recipient,
-      message: "RESEND_API_KEY not configured. Submission saved to database and ready for dispatch.",
-    };
+  // 2. Fallback: Resend API (if configured)
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.EMAIL_FROM || "A2000 AI Enablement <onboarding@resend.dev>";
+
+  if (resendApiKey) {
+    try {
+      const resend = new Resend(resendApiKey);
+      const attachments = [];
+      if (params.pdfBase64) {
+        attachments.push({
+          filename,
+          content: params.pdfBase64,
+        });
+      }
+
+      const data = await resend.emails.send({
+        from: fromEmail,
+        to: [recipient],
+        subject,
+        html: htmlBody,
+        attachments,
+      });
+
+      console.log(`[Email Service - Resend] Sent to ${recipient}:`, data);
+      return {
+        success: true,
+        provider: "resend",
+        recipient,
+        data,
+      };
+    } catch (resendErr: any) {
+      console.error("[Email Service - Resend] Failed to send via Resend:", resendErr.message);
+    }
   }
 
-  try {
-    const resend = new Resend(apiKey);
-    const data = await resend.emails.send({
-      from: fromEmail,
-      to: [recipient],
-      subject,
-      html: htmlBody,
-      attachments,
-    });
-
-    console.log(`[Email Service] Successfully sent questionnaire PDF to ${recipient}. Resend ID:`, data);
-    return {
-      success: true,
-      recipient,
-      data,
-    };
-  } catch (err: any) {
-    console.error("[Email Service] Failed to send email via Resend:", err.message);
-    return {
-      success: false,
-      error: err.message,
-      recipient,
-    };
-  }
+  return {
+    success: false,
+    recipient,
+    error: "No email provider credentials succeeded",
+  };
 }
-
