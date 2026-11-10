@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db/neon";
-import nodemailer from "nodemailer";
-import { escapeHtml } from "@/lib/html";
+import { getIndustry } from "@/lib/data/industries";
+import { appOrigin, DEFAULT_TEAM_EMAIL, isMailConfigured, sendMail } from "@/lib/services/mailer";
+import { invitationEmail } from "@/lib/services/email-templates";
 
 // GET: Fetch customer details and saved answers for their portal
 export async function GET(
@@ -113,36 +114,20 @@ export async function POST(
 
     // 3. Resend Invite Email Action (staff triggered)
     if (action === "resend_invite") {
-      const gmailUser = process.env.GMAIL_USER;
-      const gmailPass = process.env.GMAIL_APP_PASSWORD;
-
-      if (!gmailUser || !gmailPass) {
-        return NextResponse.json({ error: "Gmail SMTP not configured" }, { status: 500 });
+      if (!isMailConfigured()) {
+        return NextResponse.json({ error: "Email is not configured on the server" }, { status: 500 });
       }
 
-      const origin = request.headers.get("origin") || process.env.NEXT_PUBLIC_APP_URL || "https://a2000-questionnaire.vercel.app";
-      const portalUrl = `${origin}/portal/${id}`;
-
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: { user: gmailUser, pass: gmailPass },
+      const portalUrl = `${appOrigin(request)}/portal/${id}`;
+      const mail = invitationEmail({
+        contactName: customer.contact_name,
+        companyName: customer.company_name,
+        industryName: getIndustry(customer.industry).name,
+        portalUrl,
+        accessCode: customer.access_code,
+        isReminder: true,
       });
-
-      await transporter.sendMail({
-        from: `"A2000 | AI Enablement" <${gmailUser}>`,
-        to: customer.email,
-        cc: "ramyadevi@a2000india.com",
-        subject: `[Reminder] A2000 AI Enablement Assessment Portal for ${customer.company_name}`,
-        html: `
-          <div style="font-family: sans-serif; padding: 20px;">
-            <h2>A2000 | AI Enablement Discovery Assessment</h2>
-            <p>Dear ${escapeHtml(customer.contact_name)},</p>
-            <p>Here are your access details for your dedicated assessment portal:</p>
-            <p><strong>Portal Link:</strong> <a href="${portalUrl}">${portalUrl}</a></p>
-            <p><strong>Security Passcode:</strong> <code>${customer.access_code}</code></p>
-          </div>
-        `,
-      });
+      await sendMail({ to: customer.email, cc: process.env.NOTIFICATION_EMAIL || DEFAULT_TEAM_EMAIL, ...mail });
 
       await sql`
         UPDATE customers
