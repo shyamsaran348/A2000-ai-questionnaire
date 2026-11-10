@@ -1,9 +1,25 @@
 import type { Metadata } from "next";
+import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+
+// Self-hosted at build time: no external font request, no flash of unstyled text.
+const plex = IBM_Plex_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-plex",
+  display: "swap",
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["500", "600"],
+  variable: "--font-plex-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "A2000 | AI Enablement",
-  description: "A2000 AI Enablement Confidential Enterprise Discovery Assessment",
+  description: "A2000 AI Enablement — Confidential Enterprise Discovery Assessment",
 };
 
 export default function RootLayout({
@@ -12,44 +28,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${plex.variable} ${plexMono.variable}`}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-          rel="stylesheet"
-        />
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              tailwind.config = {
-                theme: {
-                  extend: {
-                    fontFamily: {
-                      sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
-                    },
-                    colors: {
-                      navy: {
-                        800: '#17324D',
-                        900: '#0E2135',
-                      },
-                      ochre: {
-                        500: '#C97835',
-                        600: '#B56627',
-                      }
-                    }
-                  }
-                }
-              }
-            `,
-          }}
-        />
+        <link rel="preload" href="/a2000-logo-cropped.png" as="image" />
       </head>
-      <body className="bg-slate-50 text-slate-900 font-sans antialiased min-h-screen">
-        {children}
-      </body>
+      <body className="min-h-screen font-sans text-[15px] leading-normal">{children}</body>
     </html>
   );
 }

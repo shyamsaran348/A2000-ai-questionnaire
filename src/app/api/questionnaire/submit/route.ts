@@ -4,6 +4,8 @@ import path from "path";
 import { sql, ensureTablesCreated } from "@/lib/db/neon";
 import { memoryStore } from "@/lib/services/store";
 import { sendSubmissionNotification } from "@/lib/services/email";
+import { INDUSTRIES } from "@/lib/data/industries";
+import { validateEmail, validatePhone, validateQuestionnaire } from "@/lib/validation";
 
 // Ensure DB tables are created once per cold-start, not on every request
 let tablesReady = false;
@@ -24,8 +26,30 @@ export async function POST(request: Request) {
       submittedAt = new Date().toISOString(),
     } = body;
 
-    if (!caseCode || !answers) {
+    if (!caseCode || !answers || typeof answers !== "object") {
       return NextResponse.json({ error: "Missing required fields: caseCode and answers" }, { status: 400 });
+    }
+
+    // Enforce the same rules as the browser (required answers, email/phone/website formats).
+    const industryConfig = INDUSTRIES.find((i) => i.caseCode === caseCode);
+    if (industryConfig) {
+      const fieldErrors = validateQuestionnaire(industryConfig.sections, answers);
+      if (Object.keys(fieldErrors).length > 0) {
+        return NextResponse.json(
+          { error: "Some answers are missing or invalid. Please review the highlighted questions.", fieldErrors },
+          { status: 400 }
+        );
+      }
+    }
+    // Portal submissions carry contact details from the staff-created record; standalone
+    // pages send what the client typed, so check those.
+    if (!body.customerId) {
+      if (typeof email === "string" && validateEmail(email)) {
+        return NextResponse.json({ error: "The contact email address is not valid." }, { status: 400 });
+      }
+      if (typeof phone === "string" && validatePhone(phone)) {
+        return NextResponse.json({ error: "The contact phone number is not valid." }, { status: 400 });
+      }
     }
 
     const safeClientName = clientName || "Valued Enterprise Client";

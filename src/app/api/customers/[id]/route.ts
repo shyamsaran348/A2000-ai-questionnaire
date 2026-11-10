@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db/neon";
 import nodemailer from "nodemailer";
+import { escapeHtml } from "@/lib/html";
 
 // GET: Fetch customer details and saved answers for their portal
 export async function GET(
@@ -135,7 +136,7 @@ export async function POST(
         html: `
           <div style="font-family: sans-serif; padding: 20px;">
             <h2>A2000 | AI Enablement Discovery Assessment</h2>
-            <p>Dear ${customer.contact_name},</p>
+            <p>Dear ${escapeHtml(customer.contact_name)},</p>
             <p>Here are your access details for your dedicated assessment portal:</p>
             <p><strong>Portal Link:</strong> <a href="${portalUrl}">${portalUrl}</a></p>
             <p><strong>Security Passcode:</strong> <code>${customer.access_code}</code></p>

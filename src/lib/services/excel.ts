@@ -38,8 +38,8 @@ export async function generateCaseWorkbook(data: ExcelExportParams): Promise<Buf
   workbook.created = new Date();
 
   // Primary Theme Colors (A2000 Navy & Warm Accent)
-  const NAVY_HEADER = "17324D";
-  const ACCENT_ORANGE = "C97835";
+  const NAVY_HEADER = "1B3F5C";
+  const ACCENT_BLUE = "0C6CA8";
   const LIGHT_GRAY = "F4F6F8";
 
   // 1. SHEET: SUMMARY
@@ -182,7 +182,7 @@ export async function generateCaseWorkbook(data: ExcelExportParams): Promise<Buf
   auditSheet.getRow(1).fill = {
     type: "pattern",
     pattern: "solid",
-    fgColor: { argb: ACCENT_ORANGE },
+    fgColor: { argb: ACCENT_BLUE },
   };
 
   data.auditLogs.forEach((log) => {

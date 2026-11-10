@@ -13,6 +13,8 @@ export interface QuestionDefinition {
   gridRows?: string[];
   helpText?: string;
   required?: boolean;
+  /** Input format used for validation and the right mobile keyboard. */
+  format?: "email" | "phone" | "url";
 }
 
 export interface SectionDefinition {
@@ -48,6 +50,7 @@ export const HOSPITAL_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         key: "q1_email",
+        format: "email",
         label: "Official Email Address",
         type: "text",
         placeholder: "contact@hospital.com",
@@ -55,6 +58,7 @@ export const HOSPITAL_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         key: "q1_phone",
+        format: "phone",
         label: "Contact Phone Number",
         type: "text",
         placeholder: "+91 98765 43210",
@@ -608,10 +612,19 @@ export const HOSPITAL_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
         required: true,
       },
       {
-        key: "q12_2_authorized_email_phone",
-        label: "Official Contact Email & Phone Number",
+        key: "q12_2_authorized_email",
+        label: "Official Contact Email",
         type: "text",
-        placeholder: "e.g., rkumar@hospital.com | +91 98765 43210",
+        format: "email",
+        placeholder: "e.g., rkumar@hospital.com",
+        required: true,
+      },
+      {
+        key: "q12_2b_authorized_phone",
+        label: "Official Contact Phone / Mobile Number",
+        type: "text",
+        format: "phone",
+        placeholder: "e.g., +91 98765 43210",
         required: true,
       },
       {

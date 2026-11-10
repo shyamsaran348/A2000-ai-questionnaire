@@ -1,30 +1,43 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Image from "next/image";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  Users,
-  UserPlus,
-  Building2,
-  Landmark,
-  UtensilsCrossed,
-  Gem,
-  Copy,
-  Check,
-  Send,
-  ExternalLink,
-  Search,
-  Filter,
-  ShieldCheck,
-  Clock,
-  CheckCircle2,
   AlertCircle,
-  RefreshCw,
-  LogOut,
-  ChevronRight,
   ArrowLeft,
+  Check,
+  CheckCircle2,
+  Copy,
+  ExternalLink,
+  Loader2,
   Lock,
+  LogOut,
+  Mail,
+  Plus,
+  RefreshCw,
+  Search,
+  X,
 } from "lucide-react";
+import BrandLogo from "@/components/BrandLogo";
+import { INDUSTRIES, getIndustry } from "@/lib/data/industries";
+import {
+  normalizePhone,
+  normalizeWebsite,
+  sanitizePhoneInput,
+  validateCustomer,
+  validateCustomerField,
+  type CustomerErrors,
+  type CustomerInput,
+} from "@/lib/validation";
+import {
+  btnGhost,
+  btnPrimary,
+  btnSecondary,
+  cardClass,
+  errorTextClass,
+  hintClass,
+  inputClass,
+  labelClass,
+} from "@/components/ui";
 
 interface Customer {
   id: string;
@@ -41,106 +54,100 @@ interface Customer {
   last_active_at?: string;
   submitted_at?: string;
   created_at: string;
-  answered_questions_count?: number;
 }
 
-const INDUSTRY_OPTIONS = [
-  {
-    id: "hospital",
-    name: "Hospital & Healthcare",
-    icon: Building2,
-    badge: "Healthcare",
-    description: "Multi-specialty tertiary care, hospital networks, clinics",
-  },
-  {
-    id: "finance",
-    name: "Finance & FinTech",
-    icon: Landmark,
-    badge: "Financial Services",
-    description: "NBFCs, digital lending, payments, wealth management",
-  },
-  {
-    id: "food-and-beverage",
-    name: "Food & Beverage",
-    icon: UtensilsCrossed,
-    badge: "FMCG / Processing",
-    description: "Packaged foods, FMCG manufacturing, beverage bottling",
-  },
-  {
-    id: "jewellery",
-    name: "Jewellery & Retail",
-    icon: Gem,
-    badge: "Retail & Manufacturing",
-    description: "Precious metal manufacturing, wholesale & retail showrooms",
-  },
-];
+type StatusFilter = "all" | Customer["status"];
+
+const EMPTY_FORM: CustomerInput = {
+  companyName: "",
+  website: "",
+  industry: "hospital",
+  contactName: "",
+  email: "",
+  phone: "",
+  customCode: "",
+};
+
+const STATUS_META: Record<Customer["status"], { label: string; className: string }> = {
+  created: { label: "Not started", className: "bg-slate-100 text-slate-700 ring-slate-200" },
+  in_progress: { label: "In progress", className: "bg-gold-50 text-gold ring-gold-200" },
+  submitted: { label: "Submitted", className: "bg-leaf-50 text-leaf ring-leaf-200" },
+};
+
+function formatDate(iso?: string) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
 
 export default function InternalDashboard() {
-  // Staff Auth Gate State
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [passcode, setPasscode] = useState<string>("");
-  const [authError, setAuthError] = useState<string>("");
+  // Auth
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [passcode, setPasscode] = useState("");
+  const [authError, setAuthError] = useState("");
 
-  // View: 'directory' or 'create'
-  const [currentView, setCurrentView] = useState<"directory" | "create">("directory");
+  // View
+  const [view, setView] = useState<"directory" | "create">("directory");
 
-  // Customers Data
+  // Directory
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [selectedIndustryFilter, setSelectedIndustryFilter] = useState<string>("all");
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [industryFilter, setIndustryFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ kind: "success" | "error"; text: string } | null>(null);
 
-  // Create Customer Form State
-  const [formCompany, setFormCompany] = useState("");
-  const [formWebsite, setFormWebsite] = useState("");
-  const [formIndustry, setFormIndustry] = useState("hospital");
-  const [formContactName, setFormContactName] = useState("");
-  const [formEmail, setFormEmail] = useState("");
-  const [formPhone, setFormPhone] = useState("");
-  const [formCustomCode, setFormCustomCode] = useState("");
-  const [formSendEmail, setFormSendEmail] = useState(true);
+  // Create form
+  const [form, setForm] = useState<CustomerInput>(EMPTY_FORM);
+  const [formErrors, setFormErrors] = useState<CustomerErrors>({});
+  const [sendEmail, setSendEmail] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createSuccess, setCreateSuccess] = useState<any | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
 
   useEffect(() => {
-    const sessionAuth = sessionStorage.getItem("a2000_staff_auth");
-    if (sessionAuth === "true") {
-      setIsAuthenticated(true);
-    }
+    if (sessionStorage.getItem("a2000_staff_auth") === "true") setIsAuthenticated(true);
+    setAuthChecked(true);
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      loadCustomers();
-    }
+    if (isAuthenticated) loadCustomers();
   }, [isAuthenticated]);
 
-  const loadCustomers = async () => {
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(null), 5000);
+    return () => clearTimeout(t);
+  }, [notice]);
+
+  async function loadCustomers() {
     setIsLoading(true);
+    setLoadError(null);
     try {
       const res = await fetch("/api/customers");
       const data = await res.json();
-      if (data.customers) {
-        setCustomers(data.customers);
-      }
-    } catch (err) {
-      console.warn("Failed to load customers:", err);
+      if (!res.ok) throw new Error(data.error || "Could not load customers");
+      setCustomers(data.customers ?? []);
+    } catch (err: any) {
+      setLoadError(err.message);
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
   const handleStaffLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (passcode.trim().toUpperCase() === "A2000") {
+    if (!passcode.trim()) {
+      setAuthError("Enter your staff passkey.");
+    } else if (passcode.trim().toUpperCase() === "A2000") {
       setIsAuthenticated(true);
       sessionStorage.setItem("a2000_staff_auth", "true");
       setAuthError("");
     } else {
-      setAuthError("Invalid access credentials. Please verify your passkey.");
+      setAuthError("Incorrect passkey.");
     }
   };
 
@@ -150,721 +157,630 @@ export default function InternalDashboard() {
     setPasscode("");
   };
 
+  const openCreate = () => {
+    setForm(EMPTY_FORM);
+    setFormErrors({});
+    setCreateSuccess(null);
+    setCreateError(null);
+    setView("create");
+  };
+
+  const backToDirectory = () => {
+    setCreateSuccess(null);
+    setCreateError(null);
+    setView("directory");
+  };
+
+  // --- Form helpers --------------------------------------------------------
+
+  const updateField = (field: keyof CustomerInput, value: string) => {
+    let v = value;
+    if (field === "phone") v = sanitizePhoneInput(v);
+    if (field === "customCode") v = v.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 20);
+    setForm((f) => ({ ...f, [field]: v }));
+    if (formErrors[field]) setFormErrors((e) => ({ ...e, [field]: undefined }));
+  };
+
+  const blurField = (field: keyof CustomerInput) => {
+    const value = form[field];
+    // Only flag empty required fields after submit, not on first blur.
+    if (!value.trim() && field !== "industry") return;
+    const err = validateCustomerField(field, value);
+    setFormErrors((e) => ({ ...e, [field]: err ?? undefined }));
+    if (!err) {
+      if (field === "phone") setForm((f) => ({ ...f, phone: normalizePhone(f.phone) }));
+      if (field === "website") setForm((f) => ({ ...f, website: normalizeWebsite(f.website) }));
+      if (field === "email") setForm((f) => ({ ...f, email: f.email.trim() }));
+    }
+  };
+
   const handleCreateCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
     setCreateError(null);
     setCreateSuccess(null);
 
+    const errors = validateCustomer(form);
+    setFormErrors(errors);
+    const firstInvalid = (Object.keys(EMPTY_FORM) as (keyof CustomerInput)[]).find((k) => errors[k]);
+    if (firstInvalid) {
+      document.getElementById(`cf-${firstInvalid}`)?.focus();
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       const res = await fetch("/api/customers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          companyName: formCompany,
-          website: formWebsite,
-          industry: formIndustry,
-          contactName: formContactName,
-          email: formEmail,
-          phone: formPhone,
-          customCode: formCustomCode,
-          sendEmail: formSendEmail,
+          ...form,
+          companyName: form.companyName.trim(),
+          contactName: form.contactName.trim(),
+          email: form.email.trim(),
+          phone: normalizePhone(form.phone),
+          website: normalizeWebsite(form.website),
+          sendEmail,
         }),
       });
-
       const data = await res.json();
-
       if (!res.ok || !data.success) {
+        if (data.fieldErrors) setFormErrors(data.fieldErrors);
         throw new Error(data.error || "Failed to create customer");
       }
-
       setCreateSuccess(data.customer);
-      setFormCompany("");
-      setFormWebsite("");
-      setFormContactName("");
-      setFormEmail("");
-      setFormPhone("");
-      setFormCustomCode("");
+      setForm(EMPTY_FORM);
+      setFormErrors({});
       loadCustomers();
     } catch (err: any) {
-      setCreateError(err.message || "An error occurred");
+      setCreateError(err.message || "Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const copyToClipboard = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2500);
+  // --- Directory helpers ---------------------------------------------------
+
+  const copyToClipboard = async (text: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId((c) => (c === id ? null : c)), 2000);
+    } catch {
+      setNotice({ kind: "error", text: "Couldn't access the clipboard. Copy the value manually." });
+    }
   };
 
-  const handleResendInvite = async (customerId: string) => {
-    setResendingId(customerId);
+  const handleResendInvite = async (c: Customer) => {
+    setResendingId(c.id);
     try {
-      const res = await fetch(`/api/customers/${customerId}`, {
+      const res = await fetch(`/api/customers/${c.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "resend_invite" }),
       });
       const data = await res.json();
-      if (data.success) {
-        alert("Invitation email sent successfully to the client.");
-        loadCustomers();
-      } else {
-        alert(`Error: ${data.error}`);
-      }
+      if (!data.success) throw new Error(data.error || "Email could not be sent");
+      setNotice({ kind: "success", text: `Invitation sent to ${c.email}.` });
+      loadCustomers();
     } catch (e: any) {
-      alert(`Network error: ${e.message}`);
+      setNotice({ kind: "error", text: e.message });
     } finally {
       setResendingId(null);
     }
   };
 
-  const filteredCustomers = customers.filter((c) => {
-    const matchesSearch =
-      c.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.contact_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.access_code.toLowerCase().includes(searchQuery.toLowerCase());
+  const counts = useMemo(() => {
+    const c = { all: customers.length, created: 0, in_progress: 0, submitted: 0 };
+    customers.forEach((x) => c[x.status]++);
+    return c;
+  }, [customers]);
 
-    const matchesIndustry =
-      selectedIndustryFilter === "all" || c.industry === selectedIndustryFilter;
+  const filtered = useMemo(() => {
+    const s = search.trim().toLowerCase();
+    return customers.filter(
+      (c) =>
+        (industryFilter === "all" || c.industry === industryFilter) &&
+        (statusFilter === "all" || c.status === statusFilter) &&
+        (!s ||
+          [c.company_name, c.contact_name, c.email, c.access_code, c.phone ?? ""].some((v) =>
+            v.toLowerCase().includes(s)
+          ))
+    );
+  }, [customers, search, industryFilter, statusFilter]);
 
-    return matchesSearch && matchesIndustry;
-  });
+  const portalUrlFor = (id: string) =>
+    typeof window !== "undefined" ? `${window.location.origin}/portal/${id}` : `/portal/${id}`;
 
-  // -------------------------------------------------------------
-  // VIEW: Staff Passcode Login Gate
-  // -------------------------------------------------------------
+  // =========================================================================
+  // Staff sign-in
+  // =========================================================================
+  if (!authChecked) return null;
+
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-white flex flex-col justify-center py-16 px-4 sm:px-6 lg:px-8">
-        <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          {/* Official Brand Logo */}
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-white rounded-lg border border-slate-200 p-1 flex items-center justify-center shadow-xs">
-              <Image
-                src="/a2000-logo.png"
-                alt="A2000"
-                width={40}
-                height={40}
-                className="object-contain"
-                priority
-              />
-            </div>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#f5f7f9] px-4 py-12">
+        <BrandLogo height={52} className="mb-8" />
+        <div className={`${cardClass} w-full max-w-sm p-7`}>
+          <h1 className="text-xl font-semibold text-navy">Staff sign in</h1>
+          <p className="mt-1 text-[15px] text-slate-600">AI Enablement · Client assessments</p>
+
+          <form onSubmit={handleStaffLogin} className="mt-6 space-y-4" noValidate>
             <div>
-              <div className="text-base font-bold tracking-tight text-[#17324D]">
-                A2000 | AI Enablement
+              <label htmlFor="staff-passkey" className={labelClass}>
+                Passkey
+              </label>
+              <div className="relative mt-1.5">
+                <input
+                  id="staff-passkey"
+                  type="password"
+                  value={passcode}
+                  onChange={(e) => {
+                    setPasscode(e.target.value);
+                    if (authError) setAuthError("");
+                  }}
+                  aria-invalid={!!authError}
+                  className={inputClass(!!authError, "pr-10")}
+                  autoFocus
+                />
+                <Lock className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               </div>
-              <div className="text-xs text-slate-500">
-                Internal Assessment Hub
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-          <div className="bg-white py-8 px-6 border border-slate-200 rounded-lg shadow-sm">
-            <h2 className="text-sm font-semibold text-slate-900 mb-1">
-              Internal Access
-            </h2>
-            <p className="text-xs text-slate-500 mb-5">
-              Enter your authorized staff passkey to manage client assessments.
-            </p>
-
-            <form onSubmit={handleStaffLogin} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
-                  Passkey
-                </label>
-                <div className="relative">
-                  <input
-                    type="password"
-                    value={passcode}
-                    onChange={(e) => setPasscode(e.target.value)}
-                    placeholder="Enter passkey"
-                    className="w-full rounded border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#C97835] focus:ring-1 focus:ring-[#C97835]"
-                    autoFocus
-                  />
-                  <Lock className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-              </div>
-
               {authError && (
-                <div className="flex items-center gap-2 rounded bg-red-50 border border-red-200 p-2 text-xs text-red-700">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0 text-red-500" />
-                  <span>{authError}</span>
-                </div>
+                <p role="alert" className={errorTextClass}>
+                  <AlertCircle className="mt-px h-3.5 w-3.5 shrink-0" />
+                  {authError}
+                </p>
               )}
-
-              <button
-                type="submit"
-                className="w-full flex justify-center py-2 px-4 rounded text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] transition"
-              >
-                Sign In
-              </button>
-            </form>
-
-            <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Authorized personnel only</span>
             </div>
-          </div>
+            <button type="submit" className={`${btnPrimary} w-full py-2.5`}>
+              Sign in
+            </button>
+          </form>
         </div>
+        <p className="mt-6 text-[13px] text-slate-500">For authorised A2000 staff only.</p>
       </div>
     );
   }
 
-  // -------------------------------------------------------------
-  // VIEW: Main Internal Operations Hub
-  // -------------------------------------------------------------
+  // =========================================================================
+  // App shell
+  // =========================================================================
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      {/* Top Navigation */}
-      <header className="bg-[#17324D] text-white border-b border-slate-800 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          
-          {/* Logo & Platform Name */}
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 bg-white rounded p-0.5 flex items-center justify-center shrink-0">
-              <Image
-                src="/a2000-logo.png"
-                alt="A2000"
-                width={32}
-                height={32}
-                className="object-contain"
-                priority
-              />
-            </div>
-            <div>
-              <div className="text-sm font-bold tracking-tight text-white leading-tight">
-                A2000 | AI Enablement
-              </div>
-              <div className="text-[11px] text-slate-300 leading-none">
-                Client Assessment Hub
-              </div>
-            </div>
+    <div className="min-h-screen bg-[#f5f7f9]">
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-4">
+            <BrandLogo height={36} />
+            <span className="hidden h-7 w-px bg-slate-200 sm:block" />
+            <span className="hidden text-[15px] font-medium text-slate-700 sm:block">AI Enablement · Client Assessments</span>
           </div>
-
-          {/* Action / View Switch */}
-          <div className="flex items-center space-x-3">
-            {currentView === "directory" ? (
-              <button
-                onClick={() => {
-                  setCreateSuccess(null);
-                  setCreateError(null);
-                  setCurrentView("create");
-                }}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-semibold text-white bg-[#C97835] hover:bg-[#b56728] transition shadow-xs"
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                <span>Create Customer</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => {
-                  setCreateSuccess(null);
-                  setCreateError(null);
-                  setCurrentView("directory");
-                }}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-semibold text-slate-200 hover:text-white bg-slate-800 hover:bg-slate-700 transition border border-slate-700"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Back to Directory</span>
-              </button>
-            )}
-
-            <div className="h-4 w-px bg-slate-700" />
-
-            <button
-              onClick={handleLogout}
-              className="text-xs text-slate-300 hover:text-white p-1.5 rounded hover:bg-slate-800 transition"
-              title="Sign Out"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
+          <button type="button" onClick={handleLogout} className={btnGhost}>
+            <LogOut className="h-4 w-4" />
+            <span className="hidden sm:inline">Sign out</span>
+          </button>
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* ========================================================= */}
-        {/* VIEW 1: CREATE CUSTOMER                                   */}
-        {/* ========================================================= */}
-        {currentView === "create" && (
-          <div className="max-w-2xl mx-auto">
-            <div className="mb-6 flex items-center justify-between">
-              <div>
-                <h1 className="text-lg font-bold text-slate-900">Create Customer Assessment</h1>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Provision a dedicated questionnaire link and secure access passcode for a client.
-                </p>
-              </div>
+      {notice && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm" role="status">
+          <div
+            className={`flex items-start gap-3 rounded-md border bg-white px-4 py-3 text-sm shadow-lg ${
+              notice.kind === "success" ? "border-leaf-200" : "border-red-200"
+            }`}
+          >
+            {notice.kind === "success" ? (
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-leaf" />
+            ) : (
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+            )}
+            <span className="text-slate-800">{notice.text}</span>
+            <button onClick={() => setNotice(null)} className="ml-2 text-slate-400 hover:text-slate-700" aria-label="Dismiss">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
-              <button
-                onClick={() => {
-                  setCreateSuccess(null);
-                  setCreateError(null);
-                  setCurrentView("directory");
-                }}
-                className="text-xs text-slate-500 hover:text-slate-800 font-medium flex items-center gap-1"
-              >
-                <ArrowLeft className="w-3 h-3" />
-                <span>Directory</span>
-              </button>
-            </div>
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {view === "create" ? (
+          // ===================================================================
+          // Create customer
+          // ===================================================================
+          <div className="mx-auto max-w-3xl">
+            <button type="button" onClick={backToDirectory} className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-navy">
+              <ArrowLeft className="h-4 w-4" />
+              All customers
+            </button>
+            <h1 className="text-2xl font-semibold text-navy">Create customer</h1>
+            <p className="mt-1 text-[15px] text-slate-600">
+              Set up a private assessment link and passcode for a client organisation.
+            </p>
 
-            {/* Success Box - Shows only immediately after creating */}
             {createSuccess && (
-              <div className="mb-6 bg-white border border-emerald-300 rounded-lg p-5 shadow-xs">
-                <div className="flex items-center gap-2 text-emerald-800 font-semibold text-sm mb-3">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>Client Assessment Portal Ready</span>
+              <div className={`${cardClass} mt-6 border-leaf-200 p-6`}>
+                <div className="flex items-center gap-2 text-[15px] font-semibold text-slate-900">
+                  <CheckCircle2 className="h-5 w-5 text-leaf" />
+                  {createSuccess.companyName} is ready
                 </div>
-
-                <div className="bg-slate-50 rounded border border-slate-200 p-3.5 space-y-2.5 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Company:</span>
-                    <span className="font-semibold text-slate-900">{createSuccess.companyName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Industry:</span>
-                    <span className="font-medium text-slate-700 capitalize">{createSuccess.industry}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-500">Access Passcode:</span>
-                    <span className="font-mono font-bold text-[#C97835] bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-[140px_1fr]">
+                  <dt className="text-slate-500">Questionnaire</dt>
+                  <dd className="text-slate-900">{getIndustry(createSuccess.industry).name}</dd>
+                  <dt className="text-slate-500">Passcode</dt>
+                  <dd className="flex items-center gap-2">
+                    <code className="rounded bg-slate-100 px-2 py-0.5 font-mono text-[14px] font-semibold text-navy">
                       {createSuccess.accessCode}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center pt-1 border-t border-slate-200">
-                    <span className="text-slate-500">Portal URL:</span>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-mono text-slate-700 text-[11px] truncate max-w-[200px]">
-                        {createSuccess.portalUrl}
-                      </span>
-                      <button
-                        onClick={() => copyToClipboard(createSuccess.portalUrl, "new-url")}
-                        className="text-[11px] font-medium bg-white hover:bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-300"
-                      >
-                        {copiedId === "new-url" ? "Copied" : "Copy"}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {createSuccess.emailSent && (
-                  <p className="mt-2.5 text-[11px] text-emerald-700 flex items-center gap-1">
-                    <Check className="w-3.5 h-3.5" />
-                    Invitation email with access link sent to {createSuccess.email}.
-                  </p>
-                )}
-
-                <div className="mt-4">
-                  <button
-                    onClick={() => {
-                      setCreateSuccess(null);
-                      setCurrentView("directory");
-                    }}
-                    className="text-xs font-medium text-[#17324D] hover:underline"
-                  >
-                    &larr; View in Directory
+                    </code>
+                    <CopyButton copied={copiedId === "new-code"} onClick={() => copyToClipboard(createSuccess.accessCode, "new-code")} />
+                  </dd>
+                  <dt className="text-slate-500">Portal link</dt>
+                  <dd className="flex min-w-0 items-center gap-2">
+                    <span className="truncate font-mono text-[13px] text-slate-700">{createSuccess.portalUrl}</span>
+                    <CopyButton copied={copiedId === "new-url"} onClick={() => copyToClipboard(createSuccess.portalUrl, "new-url")} />
+                  </dd>
+                </dl>
+                <p className="mt-4 text-sm text-slate-600">
+                  {createSuccess.emailSent
+                    ? `Invitation with link and passcode emailed to ${createSuccess.email}.`
+                    : createSuccess.emailError
+                      ? `The invitation email could not be sent (${createSuccess.emailError}). Share the link and passcode manually.`
+                      : "No invitation email was sent. Share the link and passcode with the client."}
+                </p>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <button type="button" onClick={backToDirectory} className={btnSecondary}>
+                    View all customers
+                  </button>
+                  <button type="button" onClick={openCreate} className={btnGhost}>
+                    Create another
                   </button>
                 </div>
               </div>
             )}
 
-            {createError && (
-              <div className="mb-5 bg-red-50 border border-red-200 rounded p-3 text-xs text-red-700 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-                <span>{createError}</span>
-              </div>
-            )}
+            {!createSuccess && (
+              <form onSubmit={handleCreateCustomer} noValidate className={`${cardClass} mt-6 divide-y divide-slate-200`}>
+                {createError && (
+                  <div role="alert" className="flex items-start gap-2.5 bg-red-50 px-6 py-3 text-sm text-red-800">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+                    {createError}
+                  </div>
+                )}
 
-            {/* Create Customer Form */}
-            <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-xs">
-              <form onSubmit={handleCreateCustomer} className="space-y-5">
-                
-                {/* 1. Industry Selection */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-800 mb-2">
-                    Industry Questionnaire *
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {INDUSTRY_OPTIONS.map((ind) => {
+                <FormSection title="Questionnaire" description="Which industry assessment should this client complete?">
+                  <div role="radiogroup" aria-label="Industry questionnaire" className="grid gap-3 sm:grid-cols-2">
+                    {INDUSTRIES.map((ind) => {
                       const Icon = ind.icon;
-                      const isSelected = formIndustry === ind.id;
+                      const selected = form.industry === ind.id;
                       return (
-                        <div
+                        <label
                           key={ind.id}
-                          onClick={() => setFormIndustry(ind.id)}
-                          className={`cursor-pointer rounded border p-3 transition flex items-start gap-2.5 ${
-                            isSelected
-                              ? "border-[#17324D] bg-slate-50 ring-1 ring-[#17324D]"
-                              : "border-slate-200 hover:border-slate-300 bg-white"
+                          className={`flex cursor-pointer items-start gap-3 rounded-md border p-4 transition-colors ${
+                            selected ? "border-brand bg-brand-50 ring-1 ring-brand" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
                           }`}
                         >
-                          <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${isSelected ? "text-[#C97835]" : "text-slate-400"}`} />
-                          <div>
-                            <div className="text-xs font-semibold text-slate-900">{ind.name}</div>
-                            <div className="text-[11px] text-slate-500 mt-0.5 leading-tight">{ind.description}</div>
-                          </div>
-                        </div>
+                          <input
+                            type="radio"
+                            name="industry"
+                            value={ind.id}
+                            checked={selected}
+                            onChange={() => updateField("industry", ind.id)}
+                            className="sr-only"
+                          />
+                          <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${selected ? "text-brand" : "text-slate-400"}`} />
+                          <span>
+                            <span className="block text-[15px] font-medium text-slate-900">{ind.name}</span>
+                            <span className="mt-0.5 block text-[13px] text-slate-500">{ind.description}</span>
+                          </span>
+                        </label>
                       );
                     })}
                   </div>
-                </div>
+                  <FieldError message={formErrors.industry} />
+                </FormSection>
 
-                {/* 2. Company Details */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Company Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formCompany}
-                      onChange={(e) => setFormCompany(e.target.value)}
-                      placeholder="e.g. Apollo Healthcare / Aachi Masala"
-                      className="w-full text-xs border border-slate-300 rounded px-2.5 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#C97835]"
-                    />
+                <FormSection title="Organisation">
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <Field id="companyName" label="Company name" required error={formErrors.companyName}>
+                      <input
+                        id="cf-companyName"
+                        type="text"
+                        autoComplete="organization"
+                        maxLength={120}
+                        value={form.companyName}
+                        onChange={(e) => updateField("companyName", e.target.value)}
+                        onBlur={() => blurField("companyName")}
+                        aria-invalid={!!formErrors.companyName}
+                        className={inputClass(!!formErrors.companyName)}
+                      />
+                    </Field>
+                    <Field id="website" label="Website" error={formErrors.website} hint="e.g. company.com">
+                      <input
+                        id="cf-website"
+                        type="url"
+                        inputMode="url"
+                        autoComplete="url"
+                        value={form.website}
+                        onChange={(e) => updateField("website", e.target.value)}
+                        onBlur={() => blurField("website")}
+                        aria-invalid={!!formErrors.website}
+                        className={inputClass(!!formErrors.website)}
+                      />
+                    </Field>
                   </div>
+                </FormSection>
 
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Website (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={formWebsite}
-                      onChange={(e) => setFormWebsite(e.target.value)}
-                      placeholder="https://example.com"
-                      className="w-full text-xs border border-slate-300 rounded px-2.5 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#C97835]"
-                    />
+                <FormSection title="Primary contact" description="The person who will receive the invitation and complete the assessment.">
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <Field id="contactName" label="Full name" required error={formErrors.contactName}>
+                      <input
+                        id="cf-contactName"
+                        type="text"
+                        autoComplete="name"
+                        maxLength={100}
+                        value={form.contactName}
+                        onChange={(e) => updateField("contactName", e.target.value)}
+                        onBlur={() => blurField("contactName")}
+                        aria-invalid={!!formErrors.contactName}
+                        className={inputClass(!!formErrors.contactName)}
+                      />
+                    </Field>
+                    <Field id="email" label="Work email" required error={formErrors.email}>
+                      <input
+                        id="cf-email"
+                        type="email"
+                        inputMode="email"
+                        autoComplete="email"
+                        value={form.email}
+                        onChange={(e) => updateField("email", e.target.value)}
+                        onBlur={() => blurField("email")}
+                        aria-invalid={!!formErrors.email}
+                        className={inputClass(!!formErrors.email)}
+                      />
+                    </Field>
+                    <Field
+                      id="phone"
+                      label="Mobile number"
+                      error={formErrors.phone}
+                      hint="10-digit Indian number, or +country code for international"
+                    >
+                      <input
+                        id="cf-phone"
+                        type="tel"
+                        inputMode="tel"
+                        autoComplete="tel"
+                        maxLength={20}
+                        placeholder="98765 43210"
+                        value={form.phone}
+                        onChange={(e) => updateField("phone", e.target.value)}
+                        onBlur={() => blurField("phone")}
+                        aria-invalid={!!formErrors.phone}
+                        className={inputClass(!!formErrors.phone)}
+                      />
+                    </Field>
                   </div>
-                </div>
+                </FormSection>
 
-                {/* 3. Contact Details */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Contact Person *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formContactName}
-                      onChange={(e) => setFormContactName(e.target.value)}
-                      placeholder="Full Name & Role"
-                      className="w-full text-xs border border-slate-300 rounded px-2.5 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#C97835]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Official Email *
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={formEmail}
-                      onChange={(e) => setFormEmail(e.target.value)}
-                      placeholder="client@company.com"
-                      className="w-full text-xs border border-slate-300 rounded px-2.5 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#C97835]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Phone Number
-                    </label>
-                    <input
-                      type="text"
-                      value={formPhone}
-                      onChange={(e) => setFormPhone(e.target.value)}
-                      placeholder="+91..."
-                      className="w-full text-xs border border-slate-300 rounded px-2.5 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#C97835]"
-                    />
-                  </div>
-                </div>
-
-                {/* 4. Passcode & Options */}
-                <div className="pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-center">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Custom Passcode (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={formCustomCode}
-                      onChange={(e) => setFormCustomCode(e.target.value)}
-                      placeholder="Leave blank to auto-generate"
-                      className="w-full text-xs border border-slate-300 rounded px-2.5 py-2 text-slate-900 placeholder-slate-400 font-mono focus:outline-none focus:border-[#C97835]"
-                    />
-                  </div>
-
-                  <div className="pt-1">
-                    <label className="flex items-center gap-2 cursor-pointer">
+                <FormSection title="Access">
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <Field
+                      id="customCode"
+                      label="Passcode"
+                      error={formErrors.customCode}
+                      hint="Leave blank to generate one automatically"
+                    >
+                      <input
+                        id="cf-customCode"
+                        type="text"
+                        autoComplete="off"
+                        placeholder="Auto-generated"
+                        value={form.customCode}
+                        onChange={(e) => updateField("customCode", e.target.value)}
+                        onBlur={() => blurField("customCode")}
+                        aria-invalid={!!formErrors.customCode}
+                        className={inputClass(!!formErrors.customCode, "font-mono")}
+                      />
+                    </Field>
+                    <label className="flex cursor-pointer items-start gap-3 self-center pt-2 sm:pt-6">
                       <input
                         type="checkbox"
-                        checked={formSendEmail}
-                        onChange={(e) => setFormSendEmail(e.target.checked)}
-                        className="rounded border-slate-300 text-[#C97835] focus:ring-[#C97835]"
+                        checked={sendEmail}
+                        onChange={(e) => setSendEmail(e.target.checked)}
+                        className="mt-0.5 h-4 w-4"
                       />
-                      <span className="text-xs font-medium text-slate-800">
-                        Email invitation link & passcode to client
+                      <span className="text-[15px] text-slate-800">
+                        Email the link and passcode to the contact
                       </span>
                     </label>
                   </div>
-                </div>
+                </FormSection>
 
-                {/* Submit Button */}
-                <div className="pt-3 border-t border-slate-100 flex justify-end gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCreateSuccess(null);
-                      setCreateError(null);
-                      setCurrentView("directory");
-                    }}
-                    className="text-xs text-slate-600 hover:text-slate-800 px-3 py-1.5"
-                  >
+                <div className="flex justify-end gap-2 bg-slate-50 px-6 py-4">
+                  <button type="button" onClick={backToDirectory} className={btnGhost}>
                     Cancel
                   </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#17324D] hover:bg-[#0f2235] px-4 py-2 rounded transition shadow-xs disabled:opacity-50"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>Generating...</span>
-                      </>
-                    ) : (
-                      <span>Generate Customer Link</span>
-                    )}
+                  <button type="submit" disabled={isSubmitting} className={btnPrimary}>
+                    {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {isSubmitting ? "Creating…" : "Create customer"}
                   </button>
                 </div>
               </form>
-            </div>
+            )}
           </div>
-        )}
-
-        {/* ========================================================= */}
-        {/* VIEW 2: MANAGE CUSTOMERS (DIRECTORY)                      */}
-        {/* ========================================================= */}
-        {currentView === "directory" && (
-          <div className="space-y-4">
-            {/* Top Toolbar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        ) : (
+          // ===================================================================
+          // Directory
+          // ===================================================================
+          <div>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h1 className="text-lg font-bold text-slate-900">Client Directory</h1>
-                <p className="text-xs text-slate-500">
-                  {customers.length} total customer assessment portals provisioned
-                </p>
+                <h1 className="text-2xl font-semibold text-navy">Customers</h1>
+                <p className="mt-1 text-[15px] text-slate-600">Track each client&apos;s assessment from invitation to submission.</p>
               </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={loadCustomers}
-                  className="inline-flex items-center gap-1 text-xs text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-2.5 py-1.5 rounded transition shadow-xs"
-                  title="Refresh list"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
-                  <span>Refresh</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setCreateSuccess(null);
-                    setCreateError(null);
-                    setCurrentView("create");
-                  }}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#C97835] hover:bg-[#b56728] px-3.5 py-1.5 rounded transition shadow-xs"
-                >
-                  <UserPlus className="w-3.5 h-3.5" />
-                  <span>Create Customer</span>
-                </button>
-              </div>
+              <button type="button" onClick={openCreate} className={btnPrimary}>
+                <Plus className="h-4 w-4" />
+                Create customer
+              </button>
             </div>
 
-            {/* Filter & Search Bar */}
-            <div className="bg-white border border-slate-200 rounded-lg p-2.5 flex flex-wrap items-center justify-between gap-2.5 shadow-2xs">
-              <div className="flex-1 min-w-[200px] relative">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            {/* Status tabs */}
+            <div className="mt-6 flex gap-6 overflow-x-auto border-b border-slate-200">
+              {(
+                [
+                  ["all", "All"],
+                  ["created", "Not started"],
+                  ["in_progress", "In progress"],
+                  ["submitted", "Submitted"],
+                ] as [StatusFilter, string][]
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setStatusFilter(key)}
+                  className={`-mb-px whitespace-nowrap border-b-2 pb-3 text-sm font-medium transition-colors ${
+                    statusFilter === key
+                      ? "border-brand text-navy"
+                      : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700"
+                  }`}
+                >
+                  {label}
+                  <span
+                    className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
+                      statusFilter === key ? "bg-brand-50 text-brand" : "bg-slate-100 text-slate-600"
+                    }`}
+                  >
+                    {counts[key]}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Toolbar */}
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by company, contact, or code..."
-                  className="w-full text-xs pl-8 pr-2.5 py-1.5 border border-slate-200 rounded focus:outline-none focus:border-[#17324D]"
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search company, contact, email, phone or passcode"
+                  aria-label="Search customers"
+                  className={inputClass(false, "pl-9")}
                 />
               </div>
-
-              <div className="flex items-center gap-1.5 text-xs">
-                <Filter className="w-3 h-3 text-slate-400" />
-                <select
-                  value={selectedIndustryFilter}
-                  onChange={(e) => setSelectedIndustryFilter(e.target.value)}
-                  className="text-xs border border-slate-200 rounded px-2 py-1 bg-white text-slate-700 focus:outline-none"
-                >
-                  <option value="all">All Industries</option>
-                  <option value="hospital">Hospital & Healthcare</option>
-                  <option value="finance">Finance & FinTech</option>
-                  <option value="food-and-beverage">Food & Beverage</option>
-                  <option value="jewellery">Jewellery & Retail</option>
-                </select>
-              </div>
+              <select
+                value={industryFilter}
+                onChange={(e) => setIndustryFilter(e.target.value)}
+                aria-label="Filter by industry"
+                className={inputClass(false, "sm:w-56")}
+              >
+                <option value="all">All industries</option>
+                {INDUSTRIES.map((i) => (
+                  <option key={i.id} value={i.id}>
+                    {i.name}
+                  </option>
+                ))}
+              </select>
+              <button type="button" onClick={loadCustomers} className={btnSecondary} aria-label="Refresh">
+                <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+                <span className="sm:hidden lg:inline">Refresh</span>
+              </button>
             </div>
 
             {/* Table */}
-            {filteredCustomers.length === 0 ? (
-              <div className="bg-white border border-slate-200 rounded-lg p-10 text-center">
-                <Users className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                <p className="text-xs font-medium text-slate-700">No customers found</p>
-                <button
-                  onClick={() => {
-                    setCreateSuccess(null);
-                    setCreateError(null);
-                    setCurrentView("create");
-                  }}
-                  className="mt-3 text-xs font-semibold text-[#17324D] hover:underline"
-                >
-                  Create your first customer &rarr;
-                </button>
-              </div>
-            ) : (
-              <div className="bg-white border border-slate-200 rounded-lg shadow-2xs overflow-hidden">
+            <div className={`${cardClass} mt-4 overflow-hidden`}>
+              {loadError ? (
+                <div className="px-6 py-14 text-center">
+                  <AlertCircle className="mx-auto h-6 w-6 text-red-600" />
+                  <p className="mt-2 text-[15px] font-medium text-slate-900">Couldn&apos;t load customers</p>
+                  <p className="mt-1 text-sm text-slate-500">{loadError}</p>
+                  <button type="button" onClick={loadCustomers} className={`${btnSecondary} mt-4`}>
+                    Try again
+                  </button>
+                </div>
+              ) : isLoading && customers.length === 0 ? (
+                <div className="flex justify-center px-6 py-16">
+                  <Loader2 className="h-5 w-5 animate-spin text-brand" aria-label="Loading" />
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="px-6 py-16 text-center">
+                  <p className="text-[15px] font-medium text-slate-900">
+                    {customers.length === 0 ? "No customers yet" : "No customers match your filters"}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {customers.length === 0
+                      ? "Create a customer to generate their private assessment link."
+                      : "Try a different search term, status or industry."}
+                  </p>
+                </div>
+              ) : (
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
-                    <thead className="bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
+                  <table className="min-w-full text-left text-sm">
+                    <thead className="border-b border-slate-200 bg-slate-50 text-[13px] text-slate-600">
                       <tr>
-                        <th className="px-4 py-3">Client</th>
-                        <th className="px-4 py-3">Industry</th>
-                        <th className="px-4 py-3">Passcode</th>
-                        <th className="px-4 py-3">Portal Link</th>
-                        <th className="px-4 py-3">Status</th>
-                        <th className="px-4 py-3">Activity</th>
-                        <th className="px-4 py-3 text-right">Actions</th>
+                        <th className="px-5 py-3 font-medium">Client</th>
+                        <th className="px-5 py-3 font-medium">Industry</th>
+                        <th className="px-5 py-3 font-medium">Passcode</th>
+                        <th className="px-5 py-3 font-medium">Status</th>
+                        <th className="px-5 py-3 font-medium">Last activity</th>
+                        <th className="px-5 py-3 text-right font-medium">
+                          <span className="sr-only">Actions</span>
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {filteredCustomers.map((c) => {
-                        const portalUrl = typeof window !== "undefined"
-                          ? `${window.location.origin}/portal/${c.id}`
-                          : `/portal/${c.id}`;
-
-                        const ind = INDUSTRY_OPTIONS.find((i) => i.id === c.industry);
-
+                      {filtered.map((c) => {
+                        const status = STATUS_META[c.status] ?? STATUS_META.created;
+                        const url = portalUrlFor(c.id);
+                        const activity =
+                          c.status === "submitted"
+                            ? `Submitted ${formatDate(c.submitted_at)}`
+                            : c.last_active_at
+                              ? `Active ${formatDate(c.last_active_at)}`
+                              : `Created ${formatDate(c.created_at)}`;
                         return (
-                          <tr key={c.id} className="hover:bg-slate-50/60 transition">
-                            {/* Client */}
-                            <td className="px-4 py-3">
+                          <tr key={c.id} className="align-top hover:bg-slate-50/70">
+                            <td className="px-5 py-4">
                               <div className="font-semibold text-slate-900">{c.company_name}</div>
-                              <div className="text-[11px] text-slate-500">{c.contact_name} &bull; {c.email}</div>
+                              <div className="mt-0.5 text-[13px] text-slate-600">{c.contact_name}</div>
+                              <div className="text-[13px] text-slate-500">
+                                {c.email}
+                                {c.phone ? ` · ${c.phone}` : ""}
+                              </div>
                             </td>
-
-                            {/* Industry */}
-                            <td className="px-4 py-3">
-                              <span className="inline-block text-[11px] text-slate-700 font-medium">
-                                {ind?.badge || c.industry}
+                            <td className="whitespace-nowrap px-5 py-4 text-slate-700">{getIndustry(c.industry).shortName}</td>
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-1.5">
+                                <code className="font-mono text-[13px] font-semibold text-navy">{c.access_code}</code>
+                                <CopyButton copied={copiedId === `code-${c.id}`} onClick={() => copyToClipboard(c.access_code, `code-${c.id}`)} label="Copy passcode" />
+                              </div>
+                            </td>
+                            <td className="px-5 py-4">
+                              <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${status.className}`}>
+                                {status.label}
                               </span>
                             </td>
-
-                            {/* Passcode */}
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-mono font-bold text-xs bg-amber-50 text-[#C97835] border border-amber-200 px-1.5 py-0.5 rounded">
-                                  {c.access_code}
-                                </span>
-                                <button
-                                  onClick={() => copyToClipboard(c.access_code, `code-${c.id}`)}
-                                  className="text-slate-400 hover:text-slate-600 p-0.5"
-                                  title="Copy code"
+                            <td className="whitespace-nowrap px-5 py-4 text-[13px] text-slate-600">{activity}</td>
+                            <td className="px-5 py-4">
+                              <div className="flex items-center justify-end gap-1">
+                                <IconAction
+                                  label={copiedId === `url-${c.id}` ? "Link copied" : "Copy portal link"}
+                                  onClick={() => copyToClipboard(url, `url-${c.id}`)}
                                 >
-                                  {copiedId === `code-${c.id}` ? (
-                                    <Check className="w-3 h-3 text-emerald-600" />
-                                  ) : (
-                                    <Copy className="w-3 h-3" />
-                                  )}
-                                </button>
-                              </div>
-                            </td>
-
-                            {/* Portal Link */}
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-mono text-[11px] text-slate-600 max-w-[140px] truncate">
-                                  /portal/{c.id}
-                                </span>
-                                <button
-                                  onClick={() => copyToClipboard(portalUrl, `url-${c.id}`)}
-                                  className="text-slate-400 hover:text-slate-600 p-0.5"
-                                  title="Copy link"
-                                >
-                                  {copiedId === `url-${c.id}` ? (
-                                    <Check className="w-3 h-3 text-emerald-600" />
-                                  ) : (
-                                    <Copy className="w-3 h-3" />
-                                  )}
-                                </button>
-                              </div>
-                            </td>
-
-                            {/* Status */}
-                            <td className="px-4 py-3">
-                              {c.status === "submitted" ? (
-                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
-                                  <CheckCircle2 className="w-3 h-3" />
-                                  Submitted
-                                </span>
-                              ) : c.status === "in_progress" ? (
-                                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
-                                  <Clock className="w-3 h-3" />
-                                  In Progress
-                                </span>
-                              ) : (
-                                <span className="text-[11px] text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">
-                                  Created
-                                </span>
-                              )}
-                            </td>
-
-                            {/* Activity */}
-                            <td className="px-4 py-3 text-[11px] text-slate-500">
-                              {c.status === "submitted" && c.submitted_at ? (
-                                <div>Submitted: {new Date(c.submitted_at).toLocaleDateString()}</div>
-                              ) : c.last_active_at ? (
-                                <div>Active: {new Date(c.last_active_at).toLocaleDateString()}</div>
-                              ) : (
-                                <div>Created: {new Date(c.created_at).toLocaleDateString()}</div>
-                              )}
-                            </td>
-
-                            {/* Actions */}
-                            <td className="px-4 py-3 text-right">
-                              <div className="flex items-center justify-end gap-1.5">
-                                <button
-                                  onClick={() => handleResendInvite(c.id)}
+                                  {copiedId === `url-${c.id}` ? <Check className="h-4 w-4 text-leaf" /> : <Copy className="h-4 w-4" />}
+                                </IconAction>
+                                <IconAction
+                                  label="Email invitation"
+                                  onClick={() => handleResendInvite(c)}
                                   disabled={resendingId === c.id}
-                                  className="text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-2 py-1 rounded transition"
-                                  title="Resend email invitation"
                                 >
-                                  {resendingId === c.id ? "Sending..." : "Send Invite"}
-                                </button>
-
+                                  {resendingId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                                </IconAction>
                                 <a
-                                  href={portalUrl}
+                                  href={url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="text-[11px] font-medium text-[#17324D] hover:text-white bg-slate-100 hover:bg-[#17324D] border border-slate-200 px-2 py-1 rounded transition flex items-center gap-0.5"
+                                  className="ml-1 inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-[13px] font-medium text-slate-700 hover:bg-slate-50"
                                 >
-                                  <span>Open</span>
-                                  <ChevronRight className="w-3 h-3" />
+                                  Open
+                                  <ExternalLink className="h-3.5 w-3.5" />
                                 </a>
                               </div>
                             </td>
@@ -874,11 +790,95 @@ export default function InternalDashboard() {
                     </tbody>
                   </table>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
       </main>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Small presentational helpers
+// ---------------------------------------------------------------------------
+
+function FormSection({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
+  return (
+    <section className="px-6 py-6">
+      <h2 className="text-[15px] font-semibold text-navy">{title}</h2>
+      {description && <p className="mt-0.5 text-sm text-slate-500">{description}</p>}
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
+function Field({
+  id,
+  label,
+  required,
+  error,
+  hint,
+  children,
+}: {
+  id: string;
+  label: string;
+  required?: boolean;
+  error?: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label htmlFor={`cf-${id}`} className={labelClass}>
+        {label}
+        {required ? <span className="ml-0.5 text-red-600">*</span> : <span className="ml-1.5 font-normal text-slate-400">Optional</span>}
+      </label>
+      <div className="mt-1.5">{children}</div>
+      {error ? <FieldError message={error} /> : hint ? <p className={hintClass}>{hint}</p> : null}
+    </div>
+  );
+}
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <p role="alert" className={errorTextClass}>
+      <AlertCircle className="mt-px h-3.5 w-3.5 shrink-0" />
+      {message}
+    </p>
+  );
+}
+
+function CopyButton({ copied, onClick, label = "Copy" }: { copied: boolean; onClick: () => void; label?: string }) {
+  return (
+    <button type="button" onClick={onClick} title={label} aria-label={label} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+      {copied ? <Check className="h-3.5 w-3.5 text-leaf" /> : <Copy className="h-3.5 w-3.5" />}
+    </button>
+  );
+}
+
+function IconAction({
+  label,
+  onClick,
+  disabled,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={label}
+      aria-label={label}
+      className="rounded-md p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50"
+    >
+      {children}
+    </button>
   );
 }

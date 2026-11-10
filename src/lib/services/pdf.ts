@@ -17,8 +17,8 @@ export function generateA2000Pdf(params: PdfExportParams): { doc: jsPDF; filenam
     format: "a4",
   });
 
-  const primaryNavy = [23, 50, 77]; // #17324D
-  const accentOrange = [201, 120, 53]; // #C97835
+  const primaryNavy = [27, 63, 92]; // #1B3F5C
+  const accentBlue = [12, 108, 168]; // #0C6CA8
   const charcoal = [30, 41, 59];
 
   // Header Banner
@@ -26,7 +26,7 @@ export function generateA2000Pdf(params: PdfExportParams): { doc: jsPDF; filenam
   doc.rect(0, 0, 210, 28, "F");
 
   // Accent Line
-  doc.setFillColor(accentOrange[0], accentOrange[1], accentOrange[2]);
+  doc.setFillColor(accentBlue[0], accentBlue[1], accentBlue[2]);
   doc.rect(0, 28, 210, 2, "F");
 
   // Header Text

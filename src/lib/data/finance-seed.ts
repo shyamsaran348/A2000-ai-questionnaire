@@ -17,6 +17,7 @@ export const FINANCE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         "key": "fn_q1_website",
+        "format": "url",
         "label": "Company Website",
         "type": "text",
         "placeholder": "e.g., https://www.apexfin.com"
@@ -43,6 +44,7 @@ export const FINANCE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         "key": "fn_q1_email",
+        "format": "email",
         "label": "Official Email Address",
         "type": "text",
         "placeholder": "e.g., rajesh.sharma@apexfin.com",
@@ -50,6 +52,7 @@ export const FINANCE_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         "key": "fn_q1_phone",
+        "format": "phone",
         "label": "Phone / Mobile Number",
         "type": "text",
         "placeholder": "e.g., +91 98765 43210",

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { sql, ensureTablesCreated } from "@/lib/db/neon";
 import nodemailer from "nodemailer";
+import { normalizePhone, normalizeWebsite, validateCustomer } from "@/lib/validation";
+import { escapeHtml } from "@/lib/html";
 
 function generateAccessCode(): string {
   // e.g. A2K-7842
@@ -58,26 +60,44 @@ export async function POST(request: Request) {
   try {
     await ensureTablesCreated();
     const body = await request.json();
-    const {
-      companyName,
-      website = "",
-      industry,
-      contactName,
-      email,
-      phone = "",
-      sendEmail = false,
-      customCode = "",
-    } = body;
+    const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+    const input = {
+      companyName: str(body.companyName),
+      website: str(body.website),
+      industry: str(body.industry),
+      contactName: str(body.contactName),
+      email: str(body.email).toLowerCase(),
+      phone: str(body.phone),
+      customCode: str(body.customCode).toUpperCase(),
+    };
+    const sendEmail = body.sendEmail === true;
 
-    if (!companyName || !industry || !contactName || !email) {
+    const fieldErrors = validateCustomer(input);
+    if (Object.keys(fieldErrors).length > 0) {
       return NextResponse.json(
-        { error: "Company name, industry, contact name, and email are required" },
+        { error: "Please correct the highlighted fields.", fieldErrors },
         { status: 400 }
       );
     }
 
+    const { companyName, industry, contactName, email } = input;
+    const website = normalizeWebsite(input.website);
+    const phone = normalizePhone(input.phone);
+
+    let accessCode = input.customCode;
+    if (accessCode) {
+      const taken = await sql`SELECT 1 FROM customers WHERE UPPER(access_code) = ${accessCode} LIMIT 1;`;
+      if (taken.length > 0) {
+        return NextResponse.json(
+          { error: "That passcode is already in use.", fieldErrors: { customCode: "This passcode is already assigned to another customer." } },
+          { status: 409 }
+        );
+      }
+    } else {
+      accessCode = generateAccessCode();
+    }
+
     const id = generateCustomerId(companyName);
-    const accessCode = customCode.trim() || generateAccessCode();
     const origin = request.headers.get("origin") || process.env.NEXT_PUBLIC_APP_URL || "https://a2000-questionnaire.vercel.app";
     const portalUrl = `${origin}/portal/${id}`;
 
@@ -146,11 +166,11 @@ export async function POST(request: Request) {
                   <style>
                     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f8fafc; color: #1e293b; margin: 0; padding: 24px; }
                     .card { max-width: 580px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
-                    .header { background: #17324D; padding: 24px; color: #ffffff; border-bottom: 3px solid #C97835; }
+                    .header { background: #1B3F5C; padding: 24px; color: #ffffff; border-bottom: 3px solid #0C6CA8; }
                     .header h1 { margin: 0; font-size: 20px; font-weight: 700; }
                     .content { padding: 24px; line-height: 1.6; font-size: 14px; }
-                    .keybox { background: #f1f5f9; border-left: 4px solid #C97835; padding: 14px 18px; margin: 20px 0; border-radius: 4px; }
-                    .btn { display: inline-block; background: #17324D; color: #ffffff !important; text-decoration: none; padding: 12px 24px; font-weight: 600; border-radius: 6px; margin: 16px 0; }
+                    .keybox { background: #f1f5f9; border-left: 4px solid #0C6CA8; padding: 14px 18px; margin: 20px 0; border-radius: 4px; }
+                    .btn { display: inline-block; background: #1B3F5C; color: #ffffff !important; text-decoration: none; padding: 12px 24px; font-weight: 600; border-radius: 6px; margin: 16px 0; }
                     .footer { padding: 16px 24px; background: #f8fafc; font-size: 11px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; }
                   </style>
                 </head>
@@ -161,14 +181,14 @@ export async function POST(request: Request) {
                       <p style="margin: 4px 0 0; font-size: 12px; color: #cbd5e1;">Enterprise Discovery Assessment</p>
                     </div>
                     <div class="content">
-                      <p>Dear <strong>${contactName}</strong>,</p>
-                      <p>A2000 has initiated a tailored <strong>${industryName}</strong> Discovery Assessment for <strong>${companyName}</strong>.</p>
+                      <p>Dear <strong>${escapeHtml(contactName)}</strong>,</p>
+                      <p>A2000 has initiated a tailored <strong>${industryName}</strong> Discovery Assessment for <strong>${escapeHtml(companyName)}</strong>.</p>
                       <p>This assessment helps our consulting team evaluate operational bottlenecks, technology systems, and automation opportunities for your organization.</p>
                       
                       <div class="keybox">
                         <div style="font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase;">Your Dedicated Access Details</div>
-                        <div style="margin-top: 8px; font-size: 14px;"><strong>Portal Link:</strong> <a href="${portalUrl}" style="color: #17324D;">${portalUrl}</a></div>
-                        <div style="margin-top: 4px; font-size: 14px;"><strong>Security Passcode:</strong> <code style="font-size: 16px; background: #ffffff; padding: 2px 8px; border-radius: 4px; border: 1px solid #cbd5e1; font-weight: bold; color: #C97835;">${accessCode}</code></div>
+                        <div style="margin-top: 8px; font-size: 14px;"><strong>Portal Link:</strong> <a href="${portalUrl}" style="color: #1B3F5C;">${portalUrl}</a></div>
+                        <div style="margin-top: 4px; font-size: 14px;"><strong>Security Passcode:</strong> <code style="font-size: 16px; background: #ffffff; padding: 2px 8px; border-radius: 4px; border: 1px solid #cbd5e1; font-weight: bold; color: #0C6CA8;">${accessCode}</code></div>
                       </div>
 
                       <div style="text-align: center;">

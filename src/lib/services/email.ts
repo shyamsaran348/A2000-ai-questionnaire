@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { Resend } from "resend";
+import { escapeHtml } from "@/lib/html";
 
 const DEFAULT_TARGET_EMAIL = "ramyadevi@a2000india.com";
 
@@ -33,7 +34,7 @@ export async function sendSubmissionNotification(params: SendSubmissionEmailPara
         <style>
           body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f6f8; margin: 0; padding: 20px; color: #1e293b; }
           .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-          .header { background: #17324D; color: #ffffff; padding: 24px; border-bottom: 3px solid #C97835; }
+          .header { background: #1B3F5C; color: #ffffff; padding: 24px; border-bottom: 3px solid #0C6CA8; }
           .header h1 { margin: 0 0 6px 0; font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
           .header p { margin: 0; font-size: 13px; color: #cbd5e1; }
           .badge { display: inline-block; background: rgba(255, 255, 255, 0.15); color: #f1f5f9; font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; float: right; }
@@ -44,7 +45,7 @@ export async function sendSubmissionNotification(params: SendSubmissionEmailPara
           .row:last-child { border-bottom: none; }
           .label { color: #64748b; font-weight: 500; }
           .val { color: #0f172a; font-weight: 600; text-align: right; }
-          .notice { background: #eff6ff; border-left: 4px solid #2563eb; padding: 12px; font-size: 13px; color: #1e40af; border-radius: 4px; margin-bottom: 20px; }
+          .notice { background: #e9f2f9; border-left: 4px solid #0C6CA8; padding: 12px; font-size: 13px; color: #1B3F5C; border-radius: 4px; margin-bottom: 20px; }
           .footer { background: #f8fafc; padding: 16px 24px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; }
         </style>
       </head>
@@ -62,12 +63,12 @@ export async function sendSubmissionNotification(params: SendSubmissionEmailPara
             
             <div class="card">
               <div class="card-title">Submission Details</div>
-              <div class="row"><span class="label">Client / Organization:</span><span class="val">${clientName}</span></div>
-              <div class="row"><span class="label">Industry:</span><span class="val">${params.industry}</span></div>
-              <div class="row"><span class="label">Case Code:</span><span class="val">${params.caseCode}</span></div>
-              <div class="row"><span class="label">Contact Person:</span><span class="val">${contactPerson}</span></div>
-              <div class="row"><span class="label">Email:</span><span class="val">${email}</span></div>
-              <div class="row"><span class="label">Phone:</span><span class="val">${phone}</span></div>
+              <div class="row"><span class="label">Client / Organization:</span><span class="val">${escapeHtml(clientName)}</span></div>
+              <div class="row"><span class="label">Industry:</span><span class="val">${escapeHtml(params.industry)}</span></div>
+              <div class="row"><span class="label">Case Code:</span><span class="val">${escapeHtml(params.caseCode)}</span></div>
+              <div class="row"><span class="label">Contact Person:</span><span class="val">${escapeHtml(contactPerson)}</span></div>
+              <div class="row"><span class="label">Email:</span><span class="val">${escapeHtml(email)}</span></div>
+              <div class="row"><span class="label">Phone:</span><span class="val">${escapeHtml(phone)}</span></div>
               <div class="row"><span class="label">Submitted At:</span><span class="val">${submittedTime} IST</span></div>
             </div>
 

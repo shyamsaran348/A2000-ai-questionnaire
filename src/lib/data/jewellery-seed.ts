@@ -24,6 +24,7 @@ export const JEWELLERY_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         key: "jw_q1_email",
+        format: "email",
         label: "Email Address",
         type: "text",
         placeholder: "e.g., rmehta@jewellers.com",
@@ -31,6 +32,7 @@ export const JEWELLERY_QUESTIONNAIRE_SECTIONS: SectionDefinition[] = [
       },
       {
         key: "jw_q1_phone",
+        format: "phone",
         label: "Phone / Mobile Number",
         type: "text",
         placeholder: "e.g., +91 98765 43210",
