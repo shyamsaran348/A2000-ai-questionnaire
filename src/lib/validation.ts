@@ -123,6 +123,28 @@ export function normalizeWebsite(value: string): string {
   return /^https?:\/\//i.test(v) ? v : `https://${v}`;
 }
 
+/** Split a free-typed list of addresses (comma, semicolon, space or new line separated). */
+export function parseEmailList(value: string): string[] {
+  return value
+    .split(/[\s,;]+/)
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+export function validateEmailList(value: string, max = 10): string | null {
+  const list = parseEmailList(value);
+  if (list.length === 0) return null;
+  const bad = list.find((e) => validateEmail(e));
+  if (bad) return `"${bad}" is not a valid email address.`;
+  if (list.length > max) return `Enter at most ${max} email addresses.`;
+  return null;
+}
+
+/** Normalised, de-duplicated list joined as "a@x.com, b@y.com". */
+export function normalizeEmailList(value: string): string {
+  return [...new Set(parseEmailList(value))].join(", ");
+}
+
 // ---------------------------------------------------------------------------
 // Names / passcodes
 // ---------------------------------------------------------------------------
@@ -165,6 +187,7 @@ export interface CustomerInput {
   contactName: string;
   email: string;
   phone: string;
+  staffEmails: string;
   customCode: string;
 }
 
@@ -184,6 +207,8 @@ export function validateCustomerField(field: keyof CustomerInput, value: string)
       return value.trim() ? validateEmail(value) : "Email address is required.";
     case "phone":
       return validatePhone(value);
+    case "staffEmails":
+      return validateEmailList(value);
     case "customCode":
       return validateAccessCode(value);
   }

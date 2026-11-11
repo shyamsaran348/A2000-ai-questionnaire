@@ -94,6 +94,13 @@ export async function sendMail(mail: OutgoingMail) {
   return { messageId: info.messageId as string, provider: cfg.provider };
 }
 
+/** CC list for a client email: the A2000 team inbox plus any staff added on the customer. */
+export function internalCc(staffEmails: string | null | undefined, clientEmail: string): string[] {
+  const team = (process.env.NOTIFICATION_EMAIL || DEFAULT_TEAM_EMAIL).toLowerCase();
+  const staff = (staffEmails || "").split(/[\s,;]+/).map((e) => e.trim().toLowerCase()).filter(Boolean);
+  return [...new Set([team, ...staff])].filter((e) => e !== clientEmail.toLowerCase());
+}
+
 /** Public base URL for links in emails — never a localhost address. */
 export function appOrigin(request: Request): string {
   const configured = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, "");

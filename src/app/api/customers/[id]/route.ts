@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { sql } from "@/lib/db/neon";
+import { sql, ensureTablesCreated } from "@/lib/db/neon";
 import { getIndustry } from "@/lib/data/industries";
-import { appOrigin, DEFAULT_TEAM_EMAIL, isMailConfigured, sendMail } from "@/lib/services/mailer";
+import { appOrigin, internalCc, isMailConfigured, sendMail } from "@/lib/services/mailer";
 import { invitationEmail } from "@/lib/services/email-templates";
 
 // GET: Fetch customer details and saved answers for their portal
@@ -16,11 +16,7 @@ export async function GET(
       SELECT 
         id,
         company_name,
-        website,
         industry,
-        contact_name,
-        email,
-        phone,
         access_code,
         status,
         answers,
@@ -42,11 +38,7 @@ export async function GET(
       customer: {
         id: customer.id,
         companyName: customer.company_name,
-        website: customer.website,
         industry: customer.industry,
-        contactName: customer.contact_name,
-        email: customer.email,
-        phone: customer.phone,
         status: customer.status,
         answers: customer.answers || {},
         submittedAt: customer.submitted_at,
@@ -71,7 +63,7 @@ export async function POST(
     const { action, accessCode, answers, isSubmitted } = body;
 
     const rows = await sql`
-      SELECT id, access_code, status, company_name, industry, contact_name, email, phone
+      SELECT id, access_code, status, company_name, industry, contact_name, email, phone, staff_emails
       FROM customers
       WHERE id = ${id}
       LIMIT 1;
@@ -114,6 +106,7 @@ export async function POST(
 
     // 3. Resend Invite Email Action (staff triggered)
     if (action === "resend_invite") {
+      await ensureTablesCreated(); // guarantees the staff_emails column exists
       if (!isMailConfigured()) {
         return NextResponse.json({ error: "Email is not configured on the server" }, { status: 500 });
       }
@@ -127,7 +120,7 @@ export async function POST(
         accessCode: customer.access_code,
         isReminder: true,
       });
-      await sendMail({ to: customer.email, cc: process.env.NOTIFICATION_EMAIL || DEFAULT_TEAM_EMAIL, ...mail });
+      await sendMail({ to: customer.email, cc: internalCc(customer.staff_emails, customer.email), ...mail });
 
       await sql`
         UPDATE customers

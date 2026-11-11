@@ -22,6 +22,7 @@ import {
 import BrandLogo from "@/components/BrandLogo";
 import { INDUSTRIES, getIndustry } from "@/lib/data/industries";
 import {
+  normalizeEmailList,
   normalizePhone,
   normalizeWebsite,
   sanitizePhoneInput,
@@ -49,6 +50,7 @@ interface Customer {
   contact_name: string;
   email: string;
   phone?: string;
+  staff_emails?: string;
   access_code: string;
   status: "created" | "in_progress" | "submitted";
   invitation_sent: boolean;
@@ -67,6 +69,7 @@ const EMPTY_FORM: CustomerInput = {
   contactName: "",
   email: "",
   phone: "",
+  staffEmails: "",
   customCode: "",
 };
 
@@ -196,6 +199,7 @@ export default function InternalDashboard() {
       if (field === "phone") setForm((f) => ({ ...f, phone: normalizePhone(f.phone) }));
       if (field === "website") setForm((f) => ({ ...f, website: normalizeWebsite(f.website) }));
       if (field === "email") setForm((f) => ({ ...f, email: f.email.trim() }));
+      if (field === "staffEmails") setForm((f) => ({ ...f, staffEmails: normalizeEmailList(f.staffEmails) }));
     }
   };
 
@@ -224,6 +228,7 @@ export default function InternalDashboard() {
           email: form.email.trim(),
           phone: normalizePhone(form.phone),
           website: normalizeWebsite(form.website),
+          staffEmails: normalizeEmailList(form.staffEmails),
           sendEmail,
         }),
       });
@@ -287,7 +292,7 @@ export default function InternalDashboard() {
         (industryFilter === "all" || c.industry === industryFilter) &&
         (statusFilter === "all" || c.status === statusFilter) &&
         (!s ||
-          [c.company_name, c.contact_name, c.email, c.access_code, c.phone ?? ""].some((v) =>
+          [c.company_name, c.contact_name, c.email, c.access_code, c.phone ?? "", c.staff_emails ?? ""].some((v) =>
             v.toLowerCase().includes(s)
           ))
     );
@@ -432,7 +437,9 @@ export default function InternalDashboard() {
                 </dl>
                 <p className="mt-4 text-sm text-slate-600">
                   {createSuccess.emailSent
-                    ? `Invitation with link and passcode emailed to ${createSuccess.email}.`
+                    ? `Invitation with link and passcode emailed to ${createSuccess.email}${
+                        createSuccess.staffEmails ? `, with ${createSuccess.staffEmails} in copy` : ""
+                      }.`
                     : createSuccess.emailError
                       ? `The invitation email could not be sent (${createSuccess.emailError}). Share the link and passcode manually.`
                       : "No invitation email was sent. Share the link and passcode with the client."}
@@ -569,6 +576,31 @@ export default function InternalDashboard() {
                       />
                     </Field>
                   </div>
+                </FormSection>
+
+                <FormSection
+                  title="A2000 team"
+                  description="Staff who should receive a copy of the invitation and any reminders."
+                >
+                  <Field
+                    id="staffEmails"
+                    label="Staff email addresses"
+                    error={formErrors.staffEmails}
+                    hint="Separate multiple addresses with commas. The A2000 team inbox is always copied."
+                  >
+                    <input
+                      id="cf-staffEmails"
+                      type="text"
+                      inputMode="email"
+                      autoComplete="off"
+                      placeholder="name@a2000india.com"
+                      value={form.staffEmails}
+                      onChange={(e) => updateField("staffEmails", e.target.value)}
+                      onBlur={() => blurField("staffEmails")}
+                      aria-invalid={!!formErrors.staffEmails}
+                      className={inputClass(!!formErrors.staffEmails)}
+                    />
+                  </Field>
                 </FormSection>
 
                 <FormSection title="Access">
@@ -763,6 +795,11 @@ export default function InternalDashboard() {
                                 {c.email}
                                 {c.phone ? ` · ${c.phone}` : ""}
                               </div>
+                              {c.staff_emails && (
+                                <div className="mt-1 text-[12px] text-slate-500">
+                                  <span className="font-medium text-slate-600">A2000 cc:</span> {c.staff_emails}
+                                </div>
+                              )}
                             </td>
                             <td className="whitespace-nowrap px-5 py-4 text-slate-700">{getIndustry(c.industry).shortName}</td>
                             <td className="px-5 py-4">

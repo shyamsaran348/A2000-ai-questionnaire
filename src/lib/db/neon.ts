@@ -68,6 +68,9 @@ export async function ensureTablesCreated() {
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
     `;
+
+    // A2000 staff copied on the customer's invitation emails (comma-separated).
+    await sql`ALTER TABLE customers ADD COLUMN IF NOT EXISTS staff_emails TEXT DEFAULT '';`;
   } catch (err: any) {
     console.error("Failed to initialize database tables:", err.message);
   }

@@ -9,14 +9,11 @@ import { QuestionnaireSections, useQuestionnaire, type Answers } from "@/compone
 import { ConfirmSubmit, QuestionnaireShell, SubmittedScreen } from "@/components/QuestionnaireShell";
 import { btnPrimary, cardClass, errorTextClass, inputClass, labelClass } from "@/components/ui";
 
+// The portal only receives non-personal fields; contact details stay server-side.
 interface Customer {
   id: string;
   companyName: string;
-  website?: string;
   industry: string;
-  contactName: string;
-  email: string;
-  phone?: string;
   status: string;
   answers: Answers;
   submittedAt?: string;
@@ -58,19 +55,13 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
 
         if (sessionStorage.getItem(`unlocked_${customerId}`) === "true") setIsUnlocked(true);
 
-        // Pre-fill the profile questions we already know from the customer record.
+        // Only the organisation name is pre-filled; the client enters contact details themselves.
         const cfg = getIndustry(c.industry).standalone;
         const dept = getIndustry(c.industry).sections[0]?.defaultDepartment ?? "";
         const saved: Answers = c.answers && typeof c.answers === "object" ? { ...c.answers } : {};
-        const prefill: Record<string, string | undefined> = {
-          [cfg.companyKey]: c.companyName,
-          [cfg.contactKey]: c.contactName,
-          [cfg.emailKey]: c.email,
-          [cfg.phoneKey]: c.phone,
-        };
-        Object.entries(prefill).forEach(([k, v]) => {
-          if (v && !saved[k]?.value) saved[k] = { value: v, department: dept };
-        });
+        if (c.companyName && !saved[cfg.companyKey]?.value) {
+          saved[cfg.companyKey] = { value: c.companyName, department: dept };
+        }
         loadedAnswers.current = saved;
         setAnswers(saved);
         if (c.answers && Object.keys(c.answers).length > 0) setLastSaved("Restored");
@@ -162,9 +153,6 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
           industry: ind.assessmentTitle,
           caseCode: ind.caseCode,
           clientName: customer?.companyName,
-          email: customer?.email,
-          phone: customer?.phone,
-          contactPerson: customer?.contactName,
           answers,
           pdfBase64: pdf.base64,
           filename: pdf.filename,
@@ -219,8 +207,6 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
           <dl className="mt-5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 rounded-md bg-slate-50 px-4 py-3 text-[14px]">
             <dt className="text-slate-500">Organisation</dt>
             <dd className="font-medium text-slate-900">{customer.companyName}</dd>
-            <dt className="text-slate-500">Prepared for</dt>
-            <dd className="font-medium text-slate-900">{customer.contactName}</dd>
           </dl>
 
           <form onSubmit={handleUnlock} className="mt-6 space-y-4" noValidate>
@@ -268,7 +254,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
   if (isSubmitted) {
     return (
       <SubmittedScreen>
-        Thank you, <span className="font-medium text-slate-900">{customer.contactName}</span>. The responses for{" "}
+        Thank you. The responses for{" "}
         <span className="font-medium text-slate-900">{customer.companyName}</span> have been received by the A2000 AI
         Enablement team, who will review them ahead of your discovery session.
       </SubmittedScreen>
@@ -280,11 +266,6 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
       <QuestionnaireShell
         eyebrow={`${customer.companyName} · Confidential`}
         title={ind.assessmentTitle}
-        meta={
-          <>
-            Prepared for {customer.contactName} · {customer.email}
-          </>
-        }
         intro="Please answer as accurately as you can — approximate figures are fine. Your answers save automatically, so you can leave and come back using the same link."
         saving={saving}
         lastSaved={lastSaved}

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { sql, ensureTablesCreated } from "@/lib/db/neon";
-import { normalizePhone, normalizeWebsite, validateCustomer } from "@/lib/validation";
+import { normalizeEmailList, normalizePhone, normalizeWebsite, validateCustomer } from "@/lib/validation";
 import { getIndustry } from "@/lib/data/industries";
-import { appOrigin, DEFAULT_TEAM_EMAIL, isMailConfigured, sendMail } from "@/lib/services/mailer";
+import { appOrigin, internalCc, isMailConfigured, sendMail } from "@/lib/services/mailer";
 import { invitationEmail } from "@/lib/services/email-templates";
 
 function generateAccessCode(): string {
@@ -34,6 +34,7 @@ export async function GET(request: Request) {
         contact_name,
         email,
         phone,
+        staff_emails,
         access_code,
         status,
         invitation_sent,
@@ -69,6 +70,7 @@ export async function POST(request: Request) {
       contactName: str(body.contactName),
       email: str(body.email).toLowerCase(),
       phone: str(body.phone),
+      staffEmails: str(body.staffEmails),
       customCode: str(body.customCode).toUpperCase(),
     };
     const sendEmail = body.sendEmail === true;
@@ -84,6 +86,7 @@ export async function POST(request: Request) {
     const { companyName, industry, contactName, email } = input;
     const website = normalizeWebsite(input.website);
     const phone = normalizePhone(input.phone);
+    const staffEmails = normalizeEmailList(input.staffEmails);
 
     let accessCode = input.customCode;
     if (accessCode) {
@@ -111,6 +114,7 @@ export async function POST(request: Request) {
         contact_name,
         email,
         phone,
+        staff_emails,
         access_code,
         status,
         answers,
@@ -123,6 +127,7 @@ export async function POST(request: Request) {
         ${contactName},
         ${email},
         ${phone},
+        ${staffEmails},
         ${accessCode},
         'created',
         '{}'::jsonb,
@@ -146,7 +151,7 @@ export async function POST(request: Request) {
             portalUrl,
             accessCode,
           });
-          await sendMail({ to: email, cc: process.env.NOTIFICATION_EMAIL || DEFAULT_TEAM_EMAIL, ...mail });
+          await sendMail({ to: email, cc: internalCc(staffEmails, email), ...mail });
           emailSent = true;
 
           await sql`
@@ -169,6 +174,7 @@ export async function POST(request: Request) {
         industry,
         contactName,
         email,
+        staffEmails,
         accessCode,
         portalUrl,
         emailSent,

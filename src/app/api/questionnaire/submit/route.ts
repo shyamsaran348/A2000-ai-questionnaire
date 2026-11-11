@@ -13,15 +13,9 @@ let tablesReady = false;
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const { industry, caseCode, answers, pdfBase64 } = body;
+    let { clientName, email, phone, contactPerson } = body;
     const {
-      industry,
-      caseCode,
-      clientName,
-      answers,
-      email,
-      phone,
-      contactPerson,
-      pdfBase64,
       filename,
       submittedAt = new Date().toISOString(),
     } = body;
@@ -49,6 +43,24 @@ export async function POST(request: Request) {
       }
       if (typeof phone === "string" && validatePhone(phone)) {
         return NextResponse.json({ error: "The contact phone number is not valid." }, { status: 400 });
+      }
+    }
+
+    // Portal submissions: contact details are never sent to the client's browser,
+    // so take them from the customer record created by A2000 staff.
+    if (body.customerId) {
+      try {
+        const rows = await sql`
+          SELECT company_name, contact_name, email, phone FROM customers WHERE id = ${body.customerId} LIMIT 1;
+        `;
+        if (rows[0]) {
+          clientName = rows[0].company_name || clientName;
+          contactPerson = rows[0].contact_name || contactPerson;
+          email = rows[0].email || email;
+          phone = rows[0].phone || phone;
+        }
+      } catch (lookupErr: any) {
+        console.error("Customer lookup failed:", lookupErr.message);
       }
     }
 
