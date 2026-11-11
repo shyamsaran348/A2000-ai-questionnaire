@@ -7,12 +7,14 @@ import {
   Check,
   CheckCircle2,
   Copy,
+  Download,
   ExternalLink,
   Loader2,
   Lock,
   LogOut,
   Mail,
   Plus,
+  Printer,
   RefreshCw,
   Search,
   X,
@@ -107,6 +109,9 @@ export default function InternalDashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createSuccess, setCreateSuccess] = useState<any | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
+
+  // Printable blank form
+  const [printOpen, setPrintOpen] = useState(false);
 
   useEffect(() => {
     if (sessionStorage.getItem("a2000_staff_auth") === "true") setIsAuthenticated(true);
@@ -380,6 +385,14 @@ export default function InternalDashboard() {
         </div>
       )}
 
+      {printOpen && (
+        <PrintableFormDialog
+          onClose={() => setPrintOpen(false)}
+          onDone={(name) => setNotice({ kind: "success", text: `${name} downloaded.` })}
+          onError={(msg) => setNotice({ kind: "error", text: msg })}
+        />
+      )}
+
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {view === "create" ? (
           // ===================================================================
@@ -614,10 +627,16 @@ export default function InternalDashboard() {
                 <h1 className="text-2xl font-semibold text-navy">Customers</h1>
                 <p className="mt-1 text-[15px] text-slate-600">Track each client&apos;s assessment from invitation to submission.</p>
               </div>
-              <button type="button" onClick={openCreate} className={btnPrimary}>
-                <Plus className="h-4 w-4" />
-                Create customer
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => setPrintOpen(true)} className={btnSecondary}>
+                  <Printer className="h-4 w-4" />
+                  Printable form
+                </button>
+                <button type="button" onClick={openCreate} className={btnPrimary}>
+                  <Plus className="h-4 w-4" />
+                  Create customer
+                </button>
+              </div>
             </div>
 
             {/* Status tabs */}
@@ -795,6 +814,133 @@ export default function InternalDashboard() {
           </div>
         )}
       </main>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Printable blank questionnaire
+// ---------------------------------------------------------------------------
+
+function PrintableFormDialog({
+  onClose,
+  onDone,
+  onError,
+}: {
+  onClose: () => void;
+  onDone: (filename: string) => void;
+  onError: (message: string) => void;
+}) {
+  const [industryId, setIndustryId] = useState<string>(INDUSTRIES[0].id);
+  const [organisation, setOrganisation] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const download = async () => {
+    setBusy(true);
+    try {
+      // Loaded on demand so the PDF library isn't part of the dashboard's initial load.
+      const { generateBlankQuestionnairePdf } = await import("@/lib/services/blank-pdf");
+      const ind = getIndustry(industryId);
+      const { doc, filename } = generateBlankQuestionnairePdf({
+        industryTitle: ind.assessmentTitle,
+        caseCode: ind.caseCode,
+        sections: ind.sections,
+        preparedFor: organisation.trim() || undefined,
+      });
+      doc.save(filename);
+      onDone(filename);
+      onClose();
+    } catch (e: any) {
+      onError(`Could not create the PDF: ${e?.message ?? "unknown error"}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="print-title"
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className={`${cardClass} w-full max-w-xl shadow-xl`}>
+        <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5">
+          <div>
+            <h2 id="print-title" className="text-lg font-semibold text-navy">
+              Printable questionnaire
+            </h2>
+            <p className="mt-0.5 text-sm text-slate-500">
+              Download a blank PDF that clients can print and complete by hand.
+            </p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Close">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="space-y-5 px-6 py-5">
+          <div>
+            <p className={labelClass}>Industry</p>
+            <div role="radiogroup" aria-label="Industry" className="mt-2 grid gap-2 sm:grid-cols-2">
+              {INDUSTRIES.map((ind) => {
+                const Icon = ind.icon;
+                const selected = industryId === ind.id;
+                return (
+                  <label
+                    key={ind.id}
+                    className={`flex cursor-pointer items-center gap-3 rounded-md border px-3 py-3 transition-colors ${
+                      selected ? "border-brand bg-brand-50 ring-1 ring-brand" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="print-industry"
+                      checked={selected}
+                      onChange={() => setIndustryId(ind.id)}
+                      className="sr-only"
+                    />
+                    <Icon className={`h-5 w-5 shrink-0 ${selected ? "text-brand" : "text-slate-400"}`} />
+                    <span className="text-[15px] font-medium text-slate-900">{ind.name}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="print-org" className={labelClass}>
+              Organisation name <span className="ml-1 font-normal text-slate-400">Optional</span>
+            </label>
+            <input
+              id="print-org"
+              type="text"
+              maxLength={120}
+              value={organisation}
+              onChange={(e) => setOrganisation(e.target.value)}
+              className={`${inputClass(false)} mt-1.5`}
+            />
+            <p className={hintClass}>Printed on the cover page. Leave blank for a fully blank form.</p>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 rounded-b-lg border-t border-slate-200 bg-slate-50 px-6 py-4">
+          <button type="button" onClick={onClose} className={btnGhost}>
+            Cancel
+          </button>
+          <button type="button" onClick={download} disabled={busy} className={btnPrimary}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {busy ? "Preparing…" : "Download PDF"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
