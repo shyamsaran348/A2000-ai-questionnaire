@@ -62,6 +62,9 @@ interface Customer {
 
 type StatusFilter = "all" | Customer["status"];
 
+// Per-tab cache so a reload shows the list instantly (cleared when the tab closes).
+const CUSTOMERS_CACHE_KEY = "a2000_customers_cache";
+
 const EMPTY_FORM: CustomerInput = {
   companyName: "",
   website: "",
@@ -122,7 +125,15 @@ export default function InternalDashboard() {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated) loadCustomers();
+    if (!isAuthenticated) return;
+    // Show the last list immediately on reload, then refresh it from the server.
+    try {
+      const cached = sessionStorage.getItem(CUSTOMERS_CACHE_KEY);
+      if (cached) setCustomers(JSON.parse(cached));
+    } catch {
+      /* ignore unreadable cache */
+    }
+    loadCustomers();
   }, [isAuthenticated]);
 
   useEffect(() => {
@@ -135,10 +146,15 @@ export default function InternalDashboard() {
     setIsLoading(true);
     setLoadError(null);
     try {
-      const res = await fetch("/api/customers");
+      const res = await fetch("/api/customers", { cache: "no-store" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not load customers");
       setCustomers(data.customers ?? []);
+      try {
+        sessionStorage.setItem(CUSTOMERS_CACHE_KEY, JSON.stringify(data.customers ?? []));
+      } catch {
+        /* storage unavailable — the cache is only a speed-up */
+      }
     } catch (err: any) {
       setLoadError(err.message);
     } finally {
@@ -161,6 +177,7 @@ export default function InternalDashboard() {
 
   const handleLogout = () => {
     sessionStorage.removeItem("a2000_staff_auth");
+    sessionStorage.removeItem(CUSTOMERS_CACHE_KEY);
     setIsAuthenticated(false);
     setPasscode("");
   };

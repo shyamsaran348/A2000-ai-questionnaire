@@ -41,12 +41,7 @@ export async function GET(request: Request) {
         invitation_sent_at,
         last_active_at,
         submitted_at,
-        created_at,
-        jsonb_typeof(answers) AS answers_type,
-        CASE 
-          WHEN answers IS NULL THEN 0
-          ELSE (SELECT count(*) FROM jsonb_object_keys(answers))
-        END AS answered_questions_count
+        created_at
       FROM customers
       ORDER BY created_at DESC;
     `;
