@@ -76,7 +76,7 @@ cd app
 sudo bash deploy/setup-server.sh --with-postgres
 ```
 
-If the domain's DNS already points at the server, pass it now and skip the `sed` in step 7:
+If the domain's DNS already points at the server, pass it now (your own address) and skip the `sed` in step 7:
 `sudo DOMAIN=assessments.a2000india.com bash deploy/setup-server.sh --with-postgres`.
 
 If the repository is private, cloning asks for a username and password. Use a GitHub
@@ -125,20 +125,68 @@ PM2 starts the app again after a crash or a reboot (`pm2 startup` was set up by 
 
 ## 7. Domain and HTTPS
 
-1. DNS for a2000india.com: add an **A** record with name `assessments` and the static IP as its value.
-2. Once `ping assessments.a2000india.com` shows the static IP:
+Any address can be used. The examples use `assessments.a2000india.com`. Do not use `a2000india.com` or
+`www.a2000india.com`, because those serve the company website.
+
+1. DNS for a2000india.com is at **Namecheap** (nameservers `dns1/dns2.registrar-servers.com`).
+   Go to Domain List → Manage → **Advanced DNS** → Add new record, choose **A Record**, enter the Host from the table below, set Value to the static IP, and leave TTL on Automatic.
+
+   | Address | Host |
+   | --- | --- |
+   | `assessments.a2000india.com` | `assessments` |
+   | `<name>.a2000india.com` | `<name>` |
+   | A separate domain, e.g. `a2000assessments.com` | `@` (in that domain's own DNS) |
+
+2. Once `ping <your address>` shows the static IP, run the following. Only the first line changes:
 
    ```bash
-   sudo sed -i 's/server_name _;/server_name assessments.a2000india.com;/' /etc/nginx/sites-available/a2000
+   DOMAIN="assessments.a2000india.com"
+   sudo sed -i "s/server_name .*;/server_name $DOMAIN;/" /etc/nginx/sites-available/a2000
    sudo nginx -t && sudo systemctl reload nginx
-   sudo certbot --nginx -d assessments.a2000india.com
+   sudo certbot --nginx -d "$DOMAIN"
    ```
 
    Certbot adds the 443 configuration, an HTTP→HTTPS redirect and automatic renewal.
-3. Set `NEXT_PUBLIC_APP_URL="https://assessments.a2000india.com"` in `.env.production`, then run
+3. Set `NEXT_PUBLIC_APP_URL="https://<your address>"` (no trailing slash) in `.env.production`, then run
    `bash deploy/deploy.sh`.
 
-## 8. Retire Vercel and Neon
+## 8. Company email through Zoho (recommended)
+
+By default the app sends through the Gmail account in `GMAIL_USER`. When `SMTP_HOST`, `SMTP_USER` and
+`SMTP_PASS` are all set, it uses that SMTP server instead and keeps Gmail as a fallback
+(`src/lib/services/mailer.ts`). The From address is always `SMTP_USER`.
+
+What a2000india.com already has: Zoho India MX records, SPF `v=spf1 include:zohomail.in ~all`, and DKIM with selector
+`zmail`. **There is no DMARC record yet.**
+
+1. **Mailbox:** the Zoho admin creates a mailbox (mailadmin.zoho.in → Users → Add), e.g. `assessments@a2000india.com`, or picks an existing one.
+   It must be a real user, not an alias or group.
+2. **SMTP access:** in that mailbox, go to mail.zoho.in → Settings → Mail Accounts → IMAP / POP and SMTP and check that access is enabled. Also make sure the
+   admin console (Security & Compliance) does not block mail clients for this user.
+3. **App password:** go to accounts.zoho.in → Security → App Passwords → Generate New Password and name it `A2000 server`. Multi-factor authentication has to be on first.
+4. **Server settings:** in `~/a2000/.env.production`, uncomment and fill in:
+
+   ```bash
+   SMTP_HOST="smtppro.zoho.in"      # organisation accounts, India data centre; fallback: smtp.zoho.in
+   SMTP_PORT="465"                  # SSL; AWS blocks only port 25
+   SMTP_USER="assessments@a2000india.com"
+   SMTP_PASS="<app password>"
+   MAIL_FROM_NAME="A2000 AI Enablement"
+   MAIL_REPLY_TO="ramyadevi@a2000india.com"
+   ```
+
+   Then run `bash deploy/deploy.sh`.
+5. **Test:** create a test customer with an external Gmail address. In Gmail, open the message and use Show original: SPF and DKIM should both be `PASS`.
+6. **DMARC:** in Namecheap, add a TXT record with Host `_dmarc` and Value `v=DMARC1; p=none; rua=mailto:ramyadevi@a2000india.com`.
+   After a few clean weeks of reports, consider tightening it to `p=quarantine`.
+
+| Problem | Fix |
+| --- | --- |
+| `535 Authentication Failed` in `pm2 logs a2000` | Wrong app password or SMTP access is off. Create a new app password, or try `smtp.zoho.in`. |
+| Still sending from Gmail | One of the three `SMTP_` values is empty or commented out. Fix it, then run `deploy.sh` again. |
+| Need Gmail back immediately | Comment out the `SMTP_` lines, then run `deploy.sh`. |
+
+## 9. Retire Vercel and Neon
 
 - After the copy in step 5, any new answers saved through the Vercel site go to Neon and will **not**
   reach the server. Switch the Vercel site off, or make it redirect to the new domain, as soon as the server works.
@@ -171,7 +219,7 @@ PM2 starts the app again after a crash or a reboot (`pm2 startup` was set up by 
 | Emails not sending | Check `GMAIL_APP_PASSWORD` (16 characters, no spaces needed) and look at `pm2 logs`. AWS blocks only port 25, and the app uses 465. |
 | Links in emails point to the IP or the wrong host | Set `NEXT_PUBLIC_APP_URL`, then run `deploy.sh` again. The value is fixed at build time. |
 | `copy-data-from-neon.sh` refuses to run | The local database already has tables, usually because the app started before the copy. Ask a developer before you drop anything. |
-| Certbot cannot find a server block | The `server_name` is still `_`. Run the `sed` command in step 7. |
+| Certbot cannot find a server block | `server_name` does not match the domain. Run the `sed` command in step 7 with your address. |
 
 ## Security notes
 
