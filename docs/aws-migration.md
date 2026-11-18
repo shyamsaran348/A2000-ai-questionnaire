@@ -3,6 +3,9 @@
 The app is a standard Next.js server plus a PostgreSQL database, so it can run on AWS
 without code changes. This page lists what to set up and which settings to change.
 
+> **Chosen setup:** everything on one Ubuntu server (Lightsail). Follow
+> [ubuntu-server-setup.md](ubuntu-server-setup.md). The managed-service options below are kept for reference.
+
 ## 1. Database → Amazon RDS for PostgreSQL (or Aurora PostgreSQL)
 
 1. Create the database in **ap-south-1 (Mumbai)**, or keep the app and database in the same
