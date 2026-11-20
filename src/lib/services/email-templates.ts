@@ -36,7 +36,7 @@ function layout({ preheader, body, footerNote }: { preheader: string; body: stri
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background-color:#ffffff;border:1px solid #e2e8f0;border-radius:6px;">
         <tr>
           <td style="padding:28px 40px 22px 40px;border-bottom:3px solid ${BLUE};">
-            <img src="cid:${LOGO_CID}" width="150" height="47" alt="A2000" style="display:block;border:0;outline:none;text-decoration:none;width:150px;height:auto;">
+            <img src="cid:${LOGO_CID}" width="152" height="45" alt="A2000" style="display:block;border:0;outline:none;text-decoration:none;width:152px;height:auto;">
           </td>
         </tr>
         <tr>

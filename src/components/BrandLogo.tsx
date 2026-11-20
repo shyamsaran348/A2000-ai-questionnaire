@@ -5,11 +5,11 @@ import Image from "next/image";
  * so it appears with the first paint. Designed for light backgrounds.
  */
 export default function BrandLogo({ height = 40, className = "" }: { height?: number; className?: string }) {
-  // Source asset is 179 × 56.
-  const width = Math.round((179 / 56) * height);
+  // Source asset is 674 × 200.
+  const width = Math.round((674 / 200) * height);
   return (
     <Image
-      src="/a2000-logo-cropped.png"
+      src="/a2000-logo.png"
       alt="A2000 — We are about solutions"
       width={width}
       height={height}

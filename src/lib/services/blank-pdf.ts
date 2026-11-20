@@ -84,7 +84,7 @@ export function generateBlankQuestionnairePdf(p: BlankPdfParams): { doc: jsPDF; 
   };
 
   // ------------------------------------------------------------------ cover
-  doc.addImage(A2000_LOGO_PNG_BASE64, "PNG", M, 14, 42, 13.1);
+  doc.addImage(A2000_LOGO_PNG_BASE64, "PNG", M, 14, 42, 12.46);
   setText(8, "bold", MUTED);
   doc.text("CONFIDENTIAL", PAGE_W - M, 18, { align: "right" });
   setText(8, "normal", MUTED);
@@ -202,7 +202,7 @@ export function generateBlankQuestionnairePdf(p: BlankPdfParams): { doc: jsPDF; 
   for (let i = 1; i <= total; i++) {
     doc.setPage(i);
     if (i > 1) {
-      doc.addImage(A2000_LOGO_PNG_BASE64, "PNG", M, 8, 25, 7.8);
+      doc.addImage(A2000_LOGO_PNG_BASE64, "PNG", M, 8, 25, 7.42);
       setText(8, "normal", MUTED);
       doc.text(clean(p.industryTitle), PAGE_W - M, 13, { align: "right" });
       doc.setDrawColor(RULE[0], RULE[1], RULE[2]);
