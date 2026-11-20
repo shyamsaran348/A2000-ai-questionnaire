@@ -174,7 +174,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
 
   if (loadingCustomer) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6">
+      <div className="flex flex-1 flex-col items-center justify-center gap-6">
         <BrandLogo height={44} />
         <Loader2 className="h-5 w-5 animate-spin text-brand" aria-label="Loading" />
       </div>
@@ -183,7 +183,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
 
   if (loadError || !customer) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#f5f7f9] px-4">
+      <div className="flex flex-1 flex-col items-center justify-center bg-[#f5f7f9] px-4">
         <BrandLogo height={44} className="mb-8" />
         <div className={`${cardClass} w-full max-w-md p-8 text-center`}>
           <AlertCircle className="mx-auto mb-3 h-8 w-8 text-red-600" />
@@ -199,7 +199,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
 
   if (!isUnlocked) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#f5f7f9] px-4 py-12">
+      <div className="flex flex-1 flex-col items-center justify-center bg-[#f5f7f9] px-4 py-12">
         <BrandLogo height={48} className="mb-8" />
         <div className={`${cardClass} w-full max-w-md p-7 sm:p-8`}>
           <p className="text-[13px] font-semibold uppercase tracking-wide text-brand">{ind.name}</p>

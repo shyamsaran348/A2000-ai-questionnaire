@@ -317,6 +317,7 @@ export default function InternalDashboard() {
         industry: ind.assessmentTitle,
         answers: data.customer.answers || {},
         sections: ind.sections,
+        submittedAt: data.customer.submittedAt,
       });
       const blobUrl = URL.createObjectURL(pdf.doc.output("blob"));
       if (tab && !tab.closed) {
@@ -362,7 +363,7 @@ export default function InternalDashboard() {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#f5f7f9] px-4 py-12">
+      <div className="flex flex-1 flex-col items-center justify-center bg-[#f5f7f9] px-4 py-12">
         <BrandLogo height={52} className="mb-8" />
         <div className={`${cardClass} w-full max-w-sm p-7`}>
           <h1 className="text-xl font-semibold text-navy">Staff sign in</h1>
@@ -409,13 +410,13 @@ export default function InternalDashboard() {
   // App shell
   // =========================================================================
   return (
-    <div className="min-h-screen bg-[#f5f7f9]">
+    <div className="flex-1 bg-[#f5f7f9]">
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
             <BrandLogo height={36} />
             <span className="hidden h-7 w-px bg-slate-200 sm:block" />
-            <span className="hidden text-[15px] font-medium text-slate-700 sm:block">AI Enablement · Client Assessments</span>
+            <span className="hidden text-[17px] font-semibold tracking-[-0.01em] text-navy sm:block">A2000 AI Enablement Service</span>
           </div>
           <button type="button" onClick={handleLogout} className={btnGhost}>
             <LogOut className="h-4 w-4" />

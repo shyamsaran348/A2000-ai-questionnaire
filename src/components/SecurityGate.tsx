@@ -51,7 +51,7 @@ export default function SecurityGate({ children, title = "AI Enablement Question
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex flex-1 items-center justify-center">
         <Loader2 className="h-5 w-5 animate-spin text-brand" aria-label="Loading" />
       </div>
     );
@@ -60,7 +60,7 @@ export default function SecurityGate({ children, title = "AI Enablement Question
   if (isAuthenticated) return <>{children}</>;
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#f5f7f9] px-4 py-12">
+    <div className="flex flex-1 flex-col items-center justify-center bg-[#f5f7f9] px-4 py-12">
       <BrandLogo height={48} className="mb-8" />
       <div className={`${cardClass} w-full max-w-sm p-7`}>
         <h1 className="text-xl font-semibold text-navy">{title}</h1>

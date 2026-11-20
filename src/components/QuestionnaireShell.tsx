@@ -57,7 +57,7 @@ export function QuestionnaireShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#f5f7f9]">
+    <div className="flex-1 bg-[#f5f7f9]">
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-4xl items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-4">
@@ -67,6 +67,8 @@ export function QuestionnaireShell({
               </Link>
             )}
             <BrandLogo height={34} />
+            <span className="hidden h-7 w-px bg-slate-200 md:block" />
+            <span className="hidden truncate text-[17px] font-semibold tracking-[-0.01em] text-navy md:block">A2000 AI Enablement Service</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="hidden sm:inline">
@@ -137,7 +139,7 @@ export function SubmittedScreen({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#f5f7f9] px-4 py-12">
+    <div className="flex flex-1 flex-col items-center justify-center bg-[#f5f7f9] px-4 py-12">
       <BrandLogo height={44} className="mb-8" />
       <div className={`${cardClass} w-full max-w-lg p-8 text-center sm:p-10`}>
         <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-leaf-50">

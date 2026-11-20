@@ -3,8 +3,8 @@ import "./globals.css";
 import SiteFooter from "@/components/SiteFooter";
 
 export const metadata: Metadata = {
-  title: "A2000 | AI Enablement",
-  description: "A2000 AI Enablement — Confidential Enterprise Discovery Assessment",
+  title: "A2000 AI Enablement Service",
+  description: "A2000 AI Enablement Service — confidential discovery assessment",
 };
 
 export default function RootLayout({
@@ -18,7 +18,7 @@ export default function RootLayout({
         <link rel="preload" href="/a2000-logo.png" as="image" />
       </head>
       <body className="flex min-h-screen flex-col font-sans text-[15px] leading-normal antialiased">
-        <div className="flex-1">{children}</div>
+        <div className="flex flex-1 flex-col">{children}</div>
         <SiteFooter />
       </body>
     </html>
