@@ -9,6 +9,7 @@ import {
   Copy,
   Download,
   ExternalLink,
+  FileText,
   Loader2,
   Lock,
   LogOut,
@@ -106,6 +107,7 @@ export default function InternalDashboard() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [pdfId, setPdfId] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ kind: "success" | "error"; text: string } | null>(null);
 
   // Create form
@@ -293,6 +295,41 @@ export default function InternalDashboard() {
       setNotice({ kind: "error", text: e.message });
     } finally {
       setResendingId(null);
+    }
+  };
+
+  /** Rebuilds the submitted PDF from the saved answers and opens it in a new tab. */
+  const handleViewPdf = async (c: Customer) => {
+    // Open the tab now, while the click still counts as a user action, so pop-up blockers allow it.
+    const tab = window.open("", "_blank");
+    if (tab) tab.document.write("<title>Preparing PDF…</title><p style=\"font-family:sans-serif;padding:24px\">Preparing PDF…</p>");
+    setPdfId(c.id);
+    try {
+      const res = await fetch(`/api/customers/${c.id}`, { cache: "no-store" });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Couldn't load the submission.");
+      if (data.customer.status !== "submitted") throw new Error("This questionnaire hasn't been submitted yet.");
+      const ind = getIndustry(data.customer.industry);
+      const { generateA2000Pdf } = await import("@/lib/services/pdf");
+      const pdf = generateA2000Pdf({
+        caseCode: ind.caseCode,
+        clientName: data.customer.companyName,
+        industry: ind.assessmentTitle,
+        answers: data.customer.answers || {},
+        sections: ind.sections,
+      });
+      const blobUrl = URL.createObjectURL(pdf.doc.output("blob"));
+      if (tab && !tab.closed) {
+        tab.location.href = blobUrl;
+      } else {
+        pdf.doc.save(pdf.filename); // pop-ups blocked: download instead
+      }
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+    } catch (e) {
+      tab?.close();
+      setNotice({ kind: "error", text: e instanceof Error ? e.message : "Couldn't open the PDF." });
+    } finally {
+      setPdfId(null);
     }
   };
 
@@ -846,6 +883,18 @@ export default function InternalDashboard() {
                                 >
                                   {resendingId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
                                 </IconAction>
+                                {c.status === "submitted" && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleViewPdf(c)}
+                                    disabled={pdfId === c.id}
+                                    title="Open the submitted answers as a PDF"
+                                    className="ml-1 inline-flex items-center gap-1 rounded-md border border-brand-100 bg-brand-50 px-2.5 py-1.5 text-[13px] font-medium text-brand hover:bg-brand-100 disabled:opacity-60"
+                                  >
+                                    {pdfId === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                                    PDF
+                                  </button>
+                                )}
                                 <a
                                   href={url}
                                   target="_blank"

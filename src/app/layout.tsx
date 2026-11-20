@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+import SiteFooter from "@/components/SiteFooter";
 
 // Self-hosted at build time: no external font request, no flash of unstyled text.
 const plex = IBM_Plex_Sans({
@@ -32,7 +33,10 @@ export default function RootLayout({
       <head>
         <link rel="preload" href="/a2000-logo-cropped.png" as="image" />
       </head>
-      <body className="min-h-screen font-sans text-[15px] leading-normal">{children}</body>
+      <body className="flex min-h-screen flex-col font-sans text-[15px] leading-normal">
+        <div className="flex-1">{children}</div>
+        <SiteFooter />
+      </body>
     </html>
   );
 }
