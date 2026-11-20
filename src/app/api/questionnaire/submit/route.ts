@@ -4,6 +4,7 @@ import path from "path";
 import { sql, ensureTablesCreated } from "@/lib/db/neon";
 import { memoryStore } from "@/lib/services/store";
 import { sendSubmissionNotification } from "@/lib/services/email";
+import { teamEmail } from "@/lib/services/mailer";
 import { INDUSTRIES } from "@/lib/data/industries";
 import { validateEmail, validatePhone, validateQuestionnaire } from "@/lib/validation";
 
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
 
     const safeClientName = clientName || "Valued Enterprise Client";
     const submissionId = `sub_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const targetRecipient = process.env.NOTIFICATION_EMAIL || "ramyadevi@a2000india.com";
+    const targetRecipient = teamEmail();
 
     const submissionRecord = {
       id: submissionId,
@@ -225,7 +226,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // 4. Email Notification with attached PDF to ramyadevi@a2000india.com
+    // 4. Email Notification with attached PDF to the A2000 team inbox
     const emailResult = await sendSubmissionNotification({
       caseCode,
       industry: industry || "General",

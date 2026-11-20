@@ -1,8 +1,6 @@
 import { Resend } from "resend";
-import { isMailConfigured, sendMail } from "./mailer";
+import { isMailConfigured, sendMail, teamEmail } from "./mailer";
 import { submissionEmail } from "./email-templates";
-
-const DEFAULT_TARGET_EMAIL = "ramyadevi@a2000india.com";
 
 interface SendSubmissionEmailParams {
   caseCode: string;
@@ -17,7 +15,7 @@ interface SendSubmissionEmailParams {
 }
 
 export async function sendSubmissionNotification(params: SendSubmissionEmailParams) {
-  const recipient = process.env.NOTIFICATION_EMAIL || DEFAULT_TARGET_EMAIL;
+  const recipient = teamEmail();
   const clientName = params.clientName || "Valued Enterprise Client";
   const contactPerson = params.contactPerson || "Not specified";
   const email = params.email || "Not specified";

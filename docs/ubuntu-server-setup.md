@@ -93,7 +93,7 @@ nano ~/a2000/.env.production
 | `NEXT_PUBLIC_APP_URL` | `"http://<static IP>"` for now, then `"https://assessments.a2000india.com"` after step 7. It is built into the app at build time, so re-run `deploy.sh` after changing it. |
 | `DATABASE_URL` | **Leave as is.** The setup script wrote `postgresql://a2000:…@127.0.0.1:5432/a2000`. |
 | `GMAIL_USER`, `GMAIL_APP_PASSWORD` | From step 1 |
-| `NOTIFICATION_EMAIL` | Where submission notifications go (default `ramyadevi@a2000india.com`) |
+| `NOTIFICATION_EMAIL` | Where submission notifications go (default `a2000aiteam@gmail.com`) |
 | `SMTP_*`, `MAIL_FROM_NAME`, `MAIL_REPLY_TO` | Optional: send from a company Zoho mailbox instead of Gmail (better deliverability) |
 
 Keep every value in double quotes. Save with Ctrl+O, Enter, then exit with Ctrl+X.
@@ -172,12 +172,12 @@ What a2000india.com already has: Zoho India MX records, SPF `v=spf1 include:zoho
    SMTP_USER="assessments@a2000india.com"
    SMTP_PASS="<app password>"
    MAIL_FROM_NAME="A2000 AI Enablement"
-   MAIL_REPLY_TO="ramyadevi@a2000india.com"
+   MAIL_REPLY_TO="a2000aiteam@gmail.com"
    ```
 
    Then run `bash deploy/deploy.sh`.
 5. **Test:** create a test customer with an external Gmail address. In Gmail, open the message and use Show original: SPF and DKIM should both be `PASS`.
-6. **DMARC:** in Namecheap, add a TXT record with Host `_dmarc` and Value `v=DMARC1; p=none; rua=mailto:ramyadevi@a2000india.com`.
+6. **DMARC:** in Namecheap, add a TXT record with Host `_dmarc` and Value `v=DMARC1; p=none; rua=mailto:a2000aiteam@gmail.com`.
    After a few clean weeks of reports, consider tightening it to `p=quarantine`.
 
 | Problem | Fix |

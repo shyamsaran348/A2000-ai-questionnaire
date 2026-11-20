@@ -17,7 +17,12 @@ import { A2000_LOGO_PNG_BASE64 } from "./logo-data";
  */
 
 export const LOGO_CID = "a2000-logo@a2000india.com";
-export const DEFAULT_TEAM_EMAIL = "ramyadevi@a2000india.com";
+/** A2000 team inbox: CC'd on invitations, receives submissions, and is the Reply-To. Override with NOTIFICATION_EMAIL. */
+export const DEFAULT_TEAM_EMAIL = "a2000aiteam@gmail.com";
+
+export function teamEmail(): string {
+  return (process.env.NOTIFICATION_EMAIL || DEFAULT_TEAM_EMAIL).trim();
+}
 
 interface MailConfig {
   transporter: Transporter;
@@ -68,7 +73,7 @@ export async function sendMail(mail: OutgoingMail) {
   if (!cfg) throw new Error("Email is not configured (set SMTP_* or GMAIL_* environment variables)");
 
   const fromName = process.env.MAIL_FROM_NAME || "A2000 AI Enablement";
-  const replyTo = process.env.MAIL_REPLY_TO || process.env.NOTIFICATION_EMAIL || DEFAULT_TEAM_EMAIL;
+  const replyTo = process.env.MAIL_REPLY_TO || teamEmail();
 
   const info = await cfg.transporter.sendMail({
     from: { name: fromName, address: cfg.fromAddress },
@@ -96,7 +101,7 @@ export async function sendMail(mail: OutgoingMail) {
 
 /** CC list for a client email: the A2000 team inbox plus any staff added on the customer. */
 export function internalCc(staffEmails: string | null | undefined, clientEmail: string): string[] {
-  const team = (process.env.NOTIFICATION_EMAIL || DEFAULT_TEAM_EMAIL).toLowerCase();
+  const team = teamEmail().toLowerCase();
   const staff = (staffEmails || "").split(/[\s,;]+/).map((e) => e.trim().toLowerCase()).filter(Boolean);
   return [...new Set([team, ...staff])].filter((e) => e !== clientEmail.toLowerCase());
 }
