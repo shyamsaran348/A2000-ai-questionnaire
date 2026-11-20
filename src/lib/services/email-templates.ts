@@ -19,6 +19,12 @@ interface Rendered {
   text: string;
 }
 
+const TEXT_FOOTER = [
+  `\u00A9 ${new Date().getFullYear()} A2000 Group. All rights reserved.`,
+  "Terms of Service: https://a2000india.com/terms-of-service",
+  "Privacy Policy: https://a2000india.com/privacy-policy",
+].join("\n");
+
 function layout({ preheader, body, footerNote }: { preheader: string; body: string; footerNote: string }): string {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -26,7 +32,7 @@ function layout({ preheader, body, footerNote }: { preheader: string; body: stri
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="x-apple-disable-message-reformatting">
-<title>A2000 AI Enablement</title>
+<title>A2000 AI Enablement Service</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f3f5f7;">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${escapeHtml(preheader)}</div>
@@ -47,13 +53,16 @@ function layout({ preheader, body, footerNote }: { preheader: string; body: stri
         <tr>
           <td style="padding:8px 40px 32px 40px;font-family:${FONT};font-size:15px;line-height:24px;color:${TEXT};">
             Regards,<br>
-            <strong style="color:${NAVY};">A2000 AI Enablement Team</strong>
+            <strong style="color:${NAVY};">A2000 AI Enablement Service</strong>
           </td>
         </tr>
         <tr>
           <td style="padding:20px 40px;background-color:#f8fafc;border-top:1px solid #e2e8f0;border-radius:0 0 6px 6px;font-family:${FONT};font-size:12px;line-height:18px;color:${MUTED};">
-            A2000 &middot; We are about solutions &middot; <a href="https://a2000india.com" style="color:${MUTED};text-decoration:underline;">a2000india.com</a><br>
-            ${footerNote}
+            ${footerNote}<br>
+            &copy; ${new Date().getFullYear()} A2000 Group. All rights reserved. &middot;
+            <a href="https://a2000india.com/terms-of-service" style="color:${MUTED};text-decoration:underline;">Terms of Service</a> &middot;
+            <a href="https://a2000india.com/privacy-policy" style="color:${MUTED};text-decoration:underline;">Privacy Policy</a> &middot;
+            <a href="https://a2000india.com" style="color:${MUTED};text-decoration:underline;">a2000india.com</a>
           </td>
         </tr>
       </table>
@@ -141,8 +150,9 @@ export function invitationEmail(opts: {
     "Please keep the passcode confidential. If you have any questions, simply reply to this email.",
     "",
     "Regards,",
-    "A2000 AI Enablement Team",
-    "https://a2000india.com",
+    "A2000 AI Enablement Service",
+    "",
+    TEXT_FOOTER,
   ].join("\n");
 
   return {
@@ -202,7 +212,9 @@ export function submissionEmail(opts: {
     "",
     o.hasPdf ? "The full set of responses is attached as a PDF." : "No PDF was attached to this submission.",
     "",
-    "A2000 AI Enablement",
+    "A2000 AI Enablement Service",
+    "",
+    TEXT_FOOTER,
   ].join("\n");
 
   return {

@@ -59,16 +59,17 @@ export function QuestionnaireShell({
   return (
     <div className="flex-1 bg-[#f5f7f9]">
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-4xl items-center justify-between gap-4 px-4 sm:px-6">
+        <div className="mx-auto flex h-16 max-w-4xl items-center justify-between gap-4 px-4 sm:h-[76px] sm:px-6">
           <div className="flex min-w-0 items-center gap-4">
             {backHref && (
               <Link href={backHref} className="text-slate-500 hover:text-slate-800" aria-label="Back">
                 <ArrowLeft className="h-4 w-4" />
               </Link>
             )}
-            <BrandLogo height={34} />
-            <span className="hidden h-7 w-px bg-slate-200 md:block" />
-            <span className="hidden truncate text-[17px] font-semibold tracking-[-0.01em] text-navy md:block">A2000 AI Enablement Service</span>
+            <BrandLogo height={36} className="sm:hidden" />
+            <BrandLogo height={46} className="hidden sm:block" />
+            <span className="hidden h-9 w-px bg-slate-200 md:block" />
+            <span className="hidden truncate text-[19px] font-semibold tracking-[-0.01em] text-navy md:block lg:text-[20px]">A2000 AI Enablement Service</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="hidden sm:inline">

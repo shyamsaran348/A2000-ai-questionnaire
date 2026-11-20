@@ -93,6 +93,9 @@ nano ~/a2000/.env.production
 | `NEXT_PUBLIC_APP_URL` | `"http://<static IP>"` for now, then `"https://assessments.a2000india.com"` after step 7. It is built into the app at build time, so re-run `deploy.sh` after changing it. |
 | `DATABASE_URL` | **Leave as is.** The setup script wrote `postgresql://a2000:…@127.0.0.1:5432/a2000`. |
 | `GMAIL_USER`, `GMAIL_APP_PASSWORD` | From step 1 |
+| `STAFF_PASSKEY` | The staff dashboard passkey. Checked only on the server. If empty, the old default `A2000` still works, so set this. |
+| `ACCESS_CODES` | Comma-separated passkeys for the open questionnaire pages (`/hospital`, `/finance`, …). If empty, the old built-in codes still work. |
+| `AUTH_SECRET` | Optional. Signs the sign-in cookies (`openssl rand -hex 32`). If empty, a key is derived from `DATABASE_URL`. Changing it signs everyone out. |
 | `NOTIFICATION_EMAIL` | Where submission notifications go (default `a2000aiteam@gmail.com`) |
 | `SMTP_*`, `MAIL_FROM_NAME`, `MAIL_REPLY_TO` | Optional: send from a company Zoho mailbox instead of Gmail (better deliverability) |
 
@@ -171,7 +174,7 @@ What a2000india.com already has: Zoho India MX records, SPF `v=spf1 include:zoho
    SMTP_PORT="465"                  # SSL; AWS blocks only port 25
    SMTP_USER="assessments@a2000india.com"
    SMTP_PASS="<app password>"
-   MAIL_FROM_NAME="A2000 AI Enablement"
+   MAIL_FROM_NAME="A2000 AI Enablement Service"
    MAIL_REPLY_TO="a2000aiteam@gmail.com"
    ```
 
@@ -225,5 +228,7 @@ What a2000india.com already has: Zoho India MX records, SPF `v=spf1 include:zoho
 
 - The app listens only on `127.0.0.1`. Only ports 22, 80 and 443 are public.
 - PostgreSQL listens only on localhost and has a random password. `.env.production` is readable only by the app user.
-- Still open in the app itself: portal and customer API routes are not yet checked on the server, and the staff passkey
-  is hard-coded. Fix these before sharing the site widely, and consider making the GitHub repository private.
+- Passkeys and client passcodes are checked on the server, which then sets a signed, httpOnly cookie. Customer data,
+  saved answers and autosave require that cookie. Wrong passcodes are limited to 10 per link per 15 minutes.
+- Set `STAFF_PASSKEY` and `ACCESS_CODES`; until then the old defaults (visible in this public repository) still work.
+  Consider making the GitHub repository private.

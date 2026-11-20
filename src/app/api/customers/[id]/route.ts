@@ -1,3 +1,4 @@
+import { clientIp, grantPortal, hasPortalAccess, isStaff, recordFailure, clearFailures, tooManyAttempts, unauthorized } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { sql, ensureTablesCreated } from "@/lib/db/neon";
 import { getIndustry } from "@/lib/data/industries";
@@ -32,7 +33,8 @@ export async function GET(
 
     const customer = rows[0];
 
-    // Return sanitized data (don't reveal raw code over public unauthenticated API without challenge)
+    // Answers are only returned to the client who entered the passcode, or to A2000 staff.
+    const unlocked = isStaff(request) || hasPortalAccess(request, customer.id);
     return NextResponse.json({
       success: true,
       customer: {
@@ -40,10 +42,9 @@ export async function GET(
         companyName: customer.company_name,
         industry: customer.industry,
         status: customer.status,
-        answers: customer.answers || {},
+        unlocked,
+        answers: unlocked ? customer.answers || {} : {},
         submittedAt: customer.submitted_at,
-        // We include whether code is configured (for validation challenge)
-        codeLength: customer.access_code ? customer.access_code.length : 0,
       },
     });
   } catch (error: any) {
@@ -60,7 +61,7 @@ export async function POST(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { action, accessCode, answers, isSubmitted } = body;
+    const { action, accessCode, answers } = body;
 
     const rows = await sql`
       SELECT id, access_code, status, company_name, industry, contact_name, email, phone, staff_emails
@@ -77,10 +78,22 @@ export async function POST(
 
     // 1. Verify Passcode Action
     if (action === "verify_code") {
-      const isMatch = customer.access_code.toUpperCase().trim() === (accessCode || "").toUpperCase().trim();
-      if (!isMatch) {
-        return NextResponse.json({ success: false, error: "Invalid security passcode" }, { status: 401 });
+      // Limit guessing: 10 wrong passcodes per link and per visitor every 15 minutes.
+      const linkKey = `portal:${id}`;
+      const ipKey = `portal-ip:${clientIp(request)}`;
+      if (tooManyAttempts(linkKey) || tooManyAttempts(ipKey, 30)) {
+        return NextResponse.json(
+          { success: false, error: "Too many incorrect attempts. Please wait 15 minutes and try again." },
+          { status: 429 }
+        );
       }
+      const isMatch = customer.access_code.toUpperCase().trim() === String(accessCode || "").toUpperCase().trim();
+      if (!isMatch) {
+        recordFailure(linkKey);
+        recordFailure(ipKey);
+        return NextResponse.json({ success: false, error: "That passcode is incorrect. Check your invitation email and try again." }, { status: 401 });
+      }
+      clearFailures(linkKey);
 
       await sql`
         UPDATE customers
@@ -89,11 +102,17 @@ export async function POST(
         WHERE id = ${id};
       `;
 
-      return NextResponse.json({ success: true, authorized: true });
+      const res = NextResponse.json({ success: true, authorized: true });
+      grantPortal(res, request, id);
+      return res;
     }
 
     // 2. Autosave Answers Action
     if (action === "autosave") {
+      if (!hasPortalAccess(request, id)) return unauthorized("Your session has expired. Please enter your passcode again.");
+      if (customer.status === "submitted") {
+        return NextResponse.json({ success: false, error: "This assessment has already been submitted." }, { status: 409 });
+      }
       await sql`
         UPDATE customers
         SET answers = ${JSON.stringify(answers || {})}::jsonb,
@@ -106,6 +125,7 @@ export async function POST(
 
     // 3. Resend Invite Email Action (staff triggered)
     if (action === "resend_invite") {
+      if (!isStaff(request)) return unauthorized();
       await ensureTablesCreated(); // guarantees the staff_emails column exists
       if (!isMailConfigured()) {
         return NextResponse.json({ error: "Email is not configured on the server" }, { status: 500 });

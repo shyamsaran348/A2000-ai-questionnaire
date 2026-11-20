@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { memoryStore } from "@/lib/services/store";
+import { hasFormAccess, unauthorized } from "@/lib/auth";
 
 export async function POST(request: Request) {
+  if (!hasFormAccess(request)) return unauthorized();
   try {
     const body = await request.json();
     const { caseCode, industry, answers } = body;

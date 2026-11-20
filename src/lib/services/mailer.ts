@@ -13,7 +13,7 @@ import { A2000_LOGO_PNG_BASE64 } from "./logo-data";
  *   Gmail (current fallback):
  *     GMAIL_USER=<address>@gmail.com  GMAIL_APP_PASSWORD=<app password>
  *
- * Optional: MAIL_FROM_NAME (default "A2000 AI Enablement"), MAIL_REPLY_TO.
+ * Optional: MAIL_FROM_NAME (default "A2000 AI Enablement Service"), MAIL_REPLY_TO.
  */
 
 export const LOGO_CID = "a2000-logo@a2000india.com";
@@ -72,7 +72,7 @@ export async function sendMail(mail: OutgoingMail) {
   const cfg = getMailConfig();
   if (!cfg) throw new Error("Email is not configured (set SMTP_* or GMAIL_* environment variables)");
 
-  const fromName = process.env.MAIL_FROM_NAME || "A2000 AI Enablement";
+  const fromName = process.env.MAIL_FROM_NAME || "A2000 AI Enablement Service";
   const replyTo = process.env.MAIL_REPLY_TO || teamEmail();
 
   const info = await cfg.transporter.sendMail({

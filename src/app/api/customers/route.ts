@@ -1,3 +1,5 @@
+import { randomBytes } from "crypto";
+import { isStaff, unauthorized } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { sql, ensureTablesCreated } from "@/lib/db/neon";
 import { normalizeEmailList, normalizePhone, normalizeWebsite, validateCustomer } from "@/lib/validation";
@@ -17,12 +19,14 @@ function generateCustomerId(companyName: string): string {
     .replace(/[^a-z0-9]/g, "-")
     .replace(/-+/g, "-")
     .substring(0, 16);
-  const randomSuffix = Math.random().toString(36).substring(2, 6);
+  // 12 random characters, so links can't be guessed.
+  const randomSuffix = randomBytes(9).toString("base64url").toLowerCase().replace(/[^a-z0-9]/g, "x").slice(0, 12);
   return `${clean}-${randomSuffix}`;
 }
 
 // GET: List all customers
 export async function GET(request: Request) {
+  if (!isStaff(request)) return unauthorized();
   try {
     await ensureTablesCreated();
     const rows = await sql`
@@ -54,6 +58,7 @@ export async function GET(request: Request) {
 
 // POST: Create a new customer and optionally send invitation email
 export async function POST(request: Request) {
+  if (!isStaff(request)) return unauthorized();
   try {
     await ensureTablesCreated();
     const body = await request.json();

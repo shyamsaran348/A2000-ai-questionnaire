@@ -5,48 +5,72 @@ import { AlertCircle, Loader2, Lock } from "lucide-react";
 import BrandLogo from "./BrandLogo";
 import { btnPrimary, cardClass, errorTextClass, inputClass, labelClass } from "./ui";
 
-const VALID_CODES = ["A2000", "A2000AI", "A2000-2026", "ENABLE2026", "DISCOVERY"];
-
 interface SecurityGateProps {
   children: React.ReactNode;
   title?: string;
 }
 
+async function unlock(code: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const res = await fetch("/api/auth/access", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    });
+    const data = await res.json();
+    return { ok: res.ok && data.success, error: data.error };
+  } catch {
+    return { ok: false, error: "We couldn't reach the server. Check your connection and try again." };
+  }
+}
+
+/** Passkey screen for the open questionnaire pages. The passkey is checked on the server. */
 export default function SecurityGate({ children, title = "AI Enablement Questionnaire" }: SecurityGateProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [inputCode, setInputCode] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const urlCode = params.get("code") || params.get("security_code") || params.get("access") || params.get("passkey");
-
-    if (urlCode && VALID_CODES.includes(urlCode.trim().toUpperCase())) {
-      localStorage.setItem("a2000_access_code", urlCode.trim().toUpperCase());
-      document.cookie = "a2000_access=granted; path=/; max-age=604800";
-      setIsAuthenticated(true);
-    } else {
-      const savedCode = localStorage.getItem("a2000_access_code");
-      if (savedCode && VALID_CODES.includes(savedCode.trim().toUpperCase())) setIsAuthenticated(true);
-    }
-    setIsLoading(false);
+    (async () => {
+      // A link like /hospital?code=XXXX unlocks straight away; the code is then removed from the address bar.
+      const params = new URLSearchParams(window.location.search);
+      const urlCode = params.get("code") || params.get("security_code") || params.get("access") || params.get("passkey");
+      try {
+        const res = await fetch("/api/auth/access", { cache: "no-store" });
+        const data = await res.json();
+        if (data.authenticated) {
+          setIsAuthenticated(true);
+        } else if (urlCode) {
+          const r = await unlock(urlCode.trim());
+          if (r.ok) setIsAuthenticated(true);
+          else setError(r.error || "That passkey isn't recognised.");
+        }
+      } catch {
+        /* show the passkey form */
+      }
+      if (urlCode) {
+        ["code", "security_code", "access", "passkey"].forEach((k) => params.delete(k));
+        const qs = params.toString();
+        window.history.replaceState(null, "", window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash);
+      }
+      setIsLoading(false);
+    })();
   }, []);
 
-  const handleVerify = (e: React.FormEvent) => {
+  const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    const clean = inputCode.trim().toUpperCase();
+    const clean = inputCode.trim();
     if (!clean) {
       setError("Enter the passkey from your A2000 invitation.");
       return;
     }
-    if (VALID_CODES.includes(clean)) {
-      localStorage.setItem("a2000_access_code", clean);
-      document.cookie = "a2000_access=granted; path=/; max-age=604800";
-      setIsAuthenticated(true);
-    } else {
-      setError("That passkey isn't recognised. Check your invitation and try again.");
-    }
+    setChecking(true);
+    const r = await unlock(clean);
+    setChecking(false);
+    if (r.ok) setIsAuthenticated(true);
+    else setError(r.error || "That passkey isn't recognised. Check your invitation and try again.");
   };
 
   if (isLoading) {
@@ -94,7 +118,8 @@ export default function SecurityGate({ children, title = "AI Enablement Question
               </p>
             )}
           </div>
-          <button type="submit" className={`${btnPrimary} w-full py-2.5`}>
+          <button type="submit" disabled={checking} className={`${btnPrimary} w-full py-2.5`}>
+            {checking && <Loader2 className="h-4 w-4 animate-spin" />}
             Continue
           </button>
         </form>

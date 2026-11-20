@@ -65,6 +65,16 @@ type StatusFilter = "all" | Customer["status"];
 
 // Per-tab cache so a reload shows the list instantly (cleared when the tab closes).
 const CUSTOMERS_CACHE_KEY = "a2000_customers_cache";
+const STAFF_HINT_KEY = "a2000_staff_auth";
+
+function clearStaffStorage() {
+  try {
+    sessionStorage.removeItem(STAFF_HINT_KEY);
+    sessionStorage.removeItem(CUSTOMERS_CACHE_KEY);
+  } catch {
+    /* storage blocked */
+  }
+}
 
 const EMPTY_FORM: CustomerInput = {
   companyName: "",
@@ -94,6 +104,7 @@ export default function InternalDashboard() {
   const [authChecked, setAuthChecked] = useState(false);
   const [passcode, setPasscode] = useState("");
   const [authError, setAuthError] = useState("");
+  const [signingIn, setSigningIn] = useState(false);
 
   // View
   const [view, setView] = useState<"directory" | "create">("directory");
@@ -121,10 +132,39 @@ export default function InternalDashboard() {
   // Printable blank form
   const [printOpen, setPrintOpen] = useState(false);
 
+  // The server decides who is signed in (httpOnly cookie). The sessionStorage flag only lets a
+  // reload show the dashboard straight away while that check runs.
   useEffect(() => {
-    if (sessionStorage.getItem("a2000_staff_auth") === "true") setIsAuthenticated(true);
-    setAuthChecked(true);
+    let hinted = false;
+    try {
+      hinted = sessionStorage.getItem(STAFF_HINT_KEY) === "true";
+    } catch {
+      /* storage blocked */
+    }
+    if (hinted) {
+      setIsAuthenticated(true);
+      setAuthChecked(true);
+    }
+    fetch("/api/auth/staff", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d.authenticated) {
+          clearStaffStorage();
+          setIsAuthenticated(false);
+        } else {
+          setIsAuthenticated(true);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setAuthChecked(true));
   }, []);
+
+  /** Called when the server says the staff session is gone. */
+  const expireSession = () => {
+    clearStaffStorage();
+    setIsAuthenticated(false);
+    setAuthError("Your session has expired. Please sign in again.");
+  };
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -149,6 +189,7 @@ export default function InternalDashboard() {
     setLoadError(null);
     try {
       const res = await fetch("/api/customers", { cache: "no-store" });
+      if (res.status === 401) return expireSession();
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not load customers");
       setCustomers(data.customers ?? []);
@@ -164,22 +205,42 @@ export default function InternalDashboard() {
     }
   }
 
-  const handleStaffLogin = (e: React.FormEvent) => {
+  const handleStaffLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!passcode.trim()) {
       setAuthError("Enter your staff passkey.");
-    } else if (passcode.trim().toUpperCase() === "A2000") {
-      setIsAuthenticated(true);
-      sessionStorage.setItem("a2000_staff_auth", "true");
+      return;
+    }
+    setSigningIn(true);
+    try {
+      const res = await fetch("/api/auth/staff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ passkey: passcode.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setAuthError(data.error || "Incorrect passkey.");
+        return;
+      }
+      try {
+        sessionStorage.setItem(STAFF_HINT_KEY, "true");
+      } catch {
+        /* storage blocked */
+      }
       setAuthError("");
-    } else {
-      setAuthError("Incorrect passkey.");
+      setPasscode("");
+      setIsAuthenticated(true);
+    } catch {
+      setAuthError("We couldn't reach the server. Check your connection and try again.");
+    } finally {
+      setSigningIn(false);
     }
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem("a2000_staff_auth");
-    sessionStorage.removeItem(CUSTOMERS_CACHE_KEY);
+    fetch("/api/auth/staff", { method: "DELETE" }).catch(() => {});
+    clearStaffStorage();
     setIsAuthenticated(false);
     setPasscode("");
   };
@@ -251,6 +312,8 @@ export default function InternalDashboard() {
           sendEmail,
         }),
       });
+      // The filled-in form is kept, so nothing is lost after signing in again.
+      if (res.status === 401) return expireSession();
       const data = await res.json();
       if (!res.ok || !data.success) {
         if (data.fieldErrors) setFormErrors(data.fieldErrors);
@@ -287,6 +350,7 @@ export default function InternalDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "resend_invite" }),
       });
+      if (res.status === 401) return expireSession();
       const data = await res.json();
       if (!data.success) throw new Error(data.error || "Email could not be sent");
       setNotice({ kind: "success", text: `Invitation sent to ${c.email}.` });
@@ -307,6 +371,10 @@ export default function InternalDashboard() {
     try {
       const res = await fetch(`/api/customers/${c.id}`, { cache: "no-store" });
       const data = await res.json();
+      if (data.customer && !data.customer.unlocked) {
+        tab?.close();
+        return expireSession();
+      }
       if (!res.ok || !data.success) throw new Error(data.error || "Couldn't load the submission.");
       if (data.customer.status !== "submitted") throw new Error("This questionnaire hasn't been submitted yet.");
       const ind = getIndustry(data.customer.industry);
@@ -396,7 +464,8 @@ export default function InternalDashboard() {
                 </p>
               )}
             </div>
-            <button type="submit" className={`${btnPrimary} w-full py-2.5`}>
+            <button type="submit" disabled={signingIn} className={`${btnPrimary} w-full py-2.5`}>
+              {signingIn && <Loader2 className="h-4 w-4 animate-spin" />}
               Sign in
             </button>
           </form>
@@ -412,11 +481,12 @@ export default function InternalDashboard() {
   return (
     <div className="flex-1 bg-[#f5f7f9]">
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:h-[76px] sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
-            <BrandLogo height={36} />
-            <span className="hidden h-7 w-px bg-slate-200 sm:block" />
-            <span className="hidden text-[17px] font-semibold tracking-[-0.01em] text-navy sm:block">A2000 AI Enablement Service</span>
+            <BrandLogo height={38} className="sm:hidden" />
+            <BrandLogo height={48} className="hidden sm:block" />
+            <span className="hidden h-9 w-px bg-slate-200 sm:block" />
+            <span className="hidden text-[19px] font-semibold tracking-[-0.01em] text-navy sm:block lg:text-[20px]">A2000 AI Enablement Service</span>
           </div>
           <button type="button" onClick={handleLogout} className={btnGhost}>
             <LogOut className="h-4 w-4" />

@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { isStaff, unauthorized } from "@/lib/auth";
 import { sql, ensureTablesCreated } from "@/lib/db/neon";
 import { memoryStore } from "@/lib/services/store";
 
 export async function GET(request: Request) {
+  if (!isStaff(request)) return unauthorized();
   const isNeonConfigured = Boolean(process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("postgres"));
 
   if (isNeonConfigured) {
@@ -36,6 +38,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (!isStaff(request)) return unauthorized();
   try {
     const body = await request.json();
     const { questionKey, value, department } = body;

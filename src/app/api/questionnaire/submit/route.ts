@@ -5,6 +5,7 @@ import { sql, ensureTablesCreated } from "@/lib/db/neon";
 import { memoryStore } from "@/lib/services/store";
 import { sendSubmissionNotification } from "@/lib/services/email";
 import { teamEmail } from "@/lib/services/mailer";
+import { hasFormAccess, hasPortalAccess, isStaff, unauthorized } from "@/lib/auth";
 import { INDUSTRIES } from "@/lib/data/industries";
 import { validateEmail, validatePhone, validateQuestionnaire } from "@/lib/validation";
 
@@ -20,6 +21,14 @@ export async function POST(request: Request) {
       filename,
       submittedAt = new Date().toISOString(),
     } = body;
+
+    if (body.customerId) {
+      if (typeof body.customerId !== "string" || !hasPortalAccess(request, body.customerId)) {
+        return unauthorized("Your session has expired. Please reopen your invitation link and enter your passcode.");
+      }
+    } else if (!hasFormAccess(request) && !isStaff(request)) {
+      return unauthorized("Please enter the access passkey again.");
+    }
 
     if (!caseCode || !answers || typeof answers !== "object") {
       return NextResponse.json({ error: "Missing required fields: caseCode and answers" }, { status: 400 });

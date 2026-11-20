@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, use, useRef } from "react";
+import React, { useState, useEffect, use, useRef, useCallback } from "react";
 import { AlertCircle, Loader2, Lock } from "lucide-react";
 import { getIndustry } from "@/lib/data/industries";
 import { generateA2000Pdf, downloadPdf } from "@/lib/services/pdf";
@@ -15,6 +15,8 @@ interface Customer {
   companyName: string;
   industry: string;
   status: string;
+  /** True once this browser has entered the right passcode (checked by the server). */
+  unlocked: boolean;
   answers: Answers;
   submittedAt?: string;
 }
@@ -43,36 +45,37 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
   const { answers, setAnswers } = q;
   const loadedAnswers = useRef<Answers | null>(null);
 
-  // 1. Load the customer record and any saved answers.
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`/api/customers/${customerId}`);
-        const data = await res.json();
-        if (!res.ok || !data.success) throw new Error(data.error || "Assessment portal not found");
-        const c: Customer = data.customer;
-        setCustomer(c);
+  // 1. Load the customer record. Saved answers only come back once the passcode was accepted.
+  const loadCustomer = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/customers/${customerId}`, { cache: "no-store" });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Assessment portal not found");
+      const c: Customer = data.customer;
+      setCustomer(c);
+      setIsUnlocked(!!c.unlocked);
 
-        if (sessionStorage.getItem(`unlocked_${customerId}`) === "true") setIsUnlocked(true);
-
-        // Only the organisation name is pre-filled; the client enters contact details themselves.
-        const cfg = getIndustry(c.industry).standalone;
-        const dept = getIndustry(c.industry).sections[0]?.defaultDepartment ?? "";
-        const saved: Answers = c.answers && typeof c.answers === "object" ? { ...c.answers } : {};
-        if (c.companyName && !saved[cfg.companyKey]?.value) {
-          saved[cfg.companyKey] = { value: c.companyName, department: dept };
-        }
-        loadedAnswers.current = saved;
-        setAnswers(saved);
-        if (c.answers && Object.keys(c.answers).length > 0) setLastSaved("Restored");
-        if (c.status === "submitted") setIsSubmitted(true);
-      } catch (err: any) {
-        setLoadError(err.message);
-      } finally {
-        setLoadingCustomer(false);
+      // Only the organisation name is pre-filled; the client enters contact details themselves.
+      const cfg = getIndustry(c.industry).standalone;
+      const dept = getIndustry(c.industry).sections[0]?.defaultDepartment ?? "";
+      const saved: Answers = c.answers && typeof c.answers === "object" ? { ...c.answers } : {};
+      if (c.companyName && !saved[cfg.companyKey]?.value) {
+        saved[cfg.companyKey] = { value: c.companyName, department: dept };
       }
-    })();
+      loadedAnswers.current = saved;
+      setAnswers(saved);
+      if (c.answers && Object.keys(c.answers).length > 0) setLastSaved("Restored");
+      if (c.status === "submitted") setIsSubmitted(true);
+    } catch (err: any) {
+      setLoadError(err.message);
+    } finally {
+      setLoadingCustomer(false);
+    }
   }, [customerId, setAnswers]);
+
+  useEffect(() => {
+    loadCustomer();
+  }, [loadCustomer]);
 
   // 2. Debounced autosave to the customer record.
   useEffect(() => {
@@ -83,11 +86,19 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
     setSaving(true);
     const timer = setTimeout(async () => {
       try {
-        await fetch(`/api/customers/${customerId}`, {
+        const res = await fetch(`/api/customers/${customerId}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "autosave", answers }),
         });
+        if (res.status === 401) {
+          // Session gone: ask for the passcode again; the answers on screen are kept.
+          loadedAnswers.current = answers;
+          setIsUnlocked(false);
+          setAuthError("Your session has expired. Please enter your passcode again.");
+          return;
+        }
+        if (!res.ok) throw new Error(`Autosave failed (${res.status})`);
         setLastSaved(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
       } catch (e) {
         console.warn("Autosave failed:", e);
@@ -114,8 +125,13 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
       });
       const data = await res.json();
       if (res.ok && data.authorized) {
-        setIsUnlocked(true);
-        sessionStorage.setItem(`unlocked_${customerId}`, "true");
+        setPasscode("");
+        if (Object.keys(answers).length > 1) {
+          // Re-entering after an expired session: keep what is on screen (it autosaves next).
+          setIsUnlocked(true);
+        } else {
+          await loadCustomer(); // first unlock: fetch the saved answers
+        }
       } else {
         setAuthError(data.error || "That passcode is incorrect. Check your invitation email and try again.");
       }
@@ -159,6 +175,12 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
           submittedAt: new Date().toISOString(),
         }),
       });
+      if (res.status === 401) {
+        loadedAnswers.current = answers;
+        setIsUnlocked(false);
+        setAuthError("Your session has expired. Enter your passcode again, then submit.");
+        return;
+      }
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error();
       downloadPdf(pdf.doc, pdf.filename);

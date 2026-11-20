@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isStaff, unauthorized } from "@/lib/auth";
 import { generateCaseWorkbook } from "@/lib/services/excel";
 import { memoryStore } from "@/lib/services/store";
 import { HOSPITAL_QUESTIONNAIRE_SECTIONS } from "@/lib/data/hospital-seed";
@@ -6,6 +7,7 @@ import { FOOD_BEVERAGE_QUESTIONNAIRE_SECTIONS } from "@/lib/data/food-beverage-s
 import { sql, ensureTablesCreated } from "@/lib/db/neon";
 
 export async function GET(request: Request) {
+  if (!isStaff(request)) return unauthorized();
   try {
     const { searchParams } = new URL(request.url);
     const caseId = searchParams.get("caseId") || "case-default";
